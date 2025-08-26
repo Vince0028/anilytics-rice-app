@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AniLytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        html { overflow-y: scroll; }
+        body { min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(1200px 600px at 10% -10%, #6fa37f 0%, transparent 40%), radial-gradient(1200px 600px at 110% 110%, #2c5530 0%, #1f3d21 45%); position: relative; overflow: hidden; }
+        /* Background dual carousel */
+        .bg-carousel { position: absolute; inset: 0; opacity: .2; pointer-events: none; overflow: hidden; }
+        .bg-row { position:absolute; left:0; right:0; height:50%; overflow:hidden; }
+        .bg-row.top { top:0; }
+        .bg-row.bottom { bottom:0; }
+        .bg-loop { display:flex; width:max-content; height:100%; will-change: transform; animation: marqueeLeft 600s linear infinite; }
+        .bg-row.bottom .bg-loop { animation-name: marqueeRight; animation-duration: 720s; }
+        .bg-seg { display:flex; height:100%; }
+        .bg-slide { flex:0 0 auto; width:33.333vw; height:100%; background-position:center; background-size:cover; filter:saturate(.95) contrast(.95); opacity: .5; }
+        @keyframes marqueeLeft { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes marqueeRight { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+        .auth-shell { width: 100%; max-width: 1040px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; padding: 2rem; margin: 0 auto; align-items: center; contain: layout; }
+        .brand-card { position: relative; background: linear-gradient(160deg, #2c5530, #4a7c59); color: #fff; border-radius: 16px; padding: 2rem; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 20px 60px rgba(0,0,0,.35); overflow: hidden; min-height: clamp(440px, 60vh, 560px); }
+        .brand-card h1 { margin: 0 0 .25rem 0; font-size: 2rem; letter-spacing: .5px; }
+        .brand-card p { margin: .25rem 0 0 0; opacity: .9; }
+        .carousel { position: absolute; inset: 0; opacity: .25; }
+        .carousel-track { position: absolute; inset: 0; display: flex; align-items: center; height: 100%; transform: translateX(0); transition: transform .5s ease; }
+        .carousel-slide { min-width: 100%; height: 100%; background-position: center; background-size: cover; filter: saturate(0.8) contrast(0.9); }
+        .carousel-nav { position: absolute; left: 0; right: 0; bottom: 12px; display: flex; justify-content: center; gap: 6px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.5); }
+        .dot.active { background: #fff; }
+        /* No arrows as requested */
+        .login-card { background: #ffffff; border: 1px solid #e9ecef; border-radius: 16px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,.08); min-height: clamp(440px, 60vh, 560px); display: flex; flex-direction: column; justify-content: center; }
+        .login-card h2 { margin: 0 0 1rem 0; color:#2c5530; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display:block; margin-bottom: .35rem; font-weight: 600; color:#2c5530; }
+        .form-group input { width: 100%; padding: .75rem .9rem; border:1px solid #ced4da; border-radius: 10px; outline: none; transition: border-color .2s ease; }
+        .form-group input:focus { border-color:#4a7c59; box-shadow: 0 0 0 3px rgba(74,124,89,.15); }
+        .pw-wrap { position: relative; }
+        .pw-wrap input { padding-right: 44px; }
+        .pw-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; color: #2c5530; opacity: .7; font-weight: 600; }
+        .pw-toggle:hover { opacity: 1; }
+        .btn-primary { background:#2c5530; color:#fff; border:none; border-radius: 10px; padding:.8rem 1rem; cursor:pointer; width:100%; font-weight: 600; }
+        .btn-primary:hover { background:#244828; }
+        .auth-meta { display:flex; justify-content: space-between; align-items:center; margin-top:.75rem; font-size:.9rem; }
+        .muted { color:#6c757d; }
+        .flash { margin-bottom: .75rem; padding:.6rem .8rem; border-radius: 8px; }
+        .flash.success { background:#e6f4ea; color:#2e7d32; border:1px solid #a5d6a7; }
+        .flash.error { background:#fff4e5; color:#b26a00; border:1px solid #ffcc80; }
+        @media (max-width: 860px) { .auth-shell { grid-template-columns: 1fr; } .brand-card { order: -1; text-align: center; } }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => { document.querySelectorAll('.flash').forEach(el => el.style.display = 'none') }, 4000)
+            // Carousel logic
+            const images = {{ (carousel_images or [])|tojson }}
+            // Build background dual rows
+            const buildBg = () => {
+              const bg = document.querySelector('.bg-carousel')
+              if (!bg || !images || images.length === 0) return
+              const take = (arr, n) => (arr.length >= n ? arr.slice(0, n) : Array.from({length:n}, (_,i)=>arr[i%arr.length]))
+              const segArr = take(images, 6)
+              const buildSegment = (arr) => {
+                const seg = document.createElement('div'); seg.className='bg-seg'
+                arr.forEach(src => { const d=document.createElement('div'); d.className='bg-slide'; d.style.backgroundImage=`url('/image/${src}')`; seg.appendChild(d) })
+                return seg
+              }
+              const buildRow = (reverse=false) => {
+                const row = document.createElement('div'); row.className = `bg-row ${reverse?'bottom':'top'}`
+                const loop = document.createElement('div'); loop.className='bg-loop'
+                const arr = reverse ? segArr.slice().reverse() : segArr
+                loop.appendChild(buildSegment(arr))
+                loop.appendChild(buildSegment(arr)) // duplicate for seamless loop
+                row.appendChild(loop)
+                return row
+              }
+              bg.appendChild(buildRow(false))
+              bg.appendChild(buildRow(true))
+            }
+            const track = document.querySelector('.carousel-track')
+            const dotsWrap = document.querySelector('.carousel-nav')
+            const leftBtn = null
+            const rightBtn = null
+            if (track && Array.isArray(images)) {
+                track.innerHTML = images.map(src => `<div class="carousel-slide" style="background-image:url('/image/${src}')"></div>`).join('')
+                dotsWrap.innerHTML = images.map((_,i)=>`<div class="dot${i===0?' active':''}"></div>`).join('')
+                let index = 0
+                const update = () => {
+                    track.style.transform = `translateX(${-index*100}%)`
+                    dotsWrap.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active', i===index))
+                }
+                const next = () => { index = (index + 1) % images.length; update() }
+                const prev = () => { index = (index - 1 + images.length) % images.length; update() }
+                // arrows removed
+                let startX = null
+                track.addEventListener('touchstart', e => { startX = e.touches[0].clientX })
+                track.addEventListener('touchend', e => { const dx = (e.changedTouches[0].clientX - startX); if (dx > 40) prev(); if (dx < -40) next() })
+                document.addEventListener('keydown', e => { if (e.key === 'ArrowRight') next(); if (e.key === 'ArrowLeft') prev() })
+                const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                if (images.length > 1 && !reduceMotion) setInterval(next, 15000)
+                buildBg()
+            }
+
+            // Password visibility toggles
+            document.querySelectorAll('.pw-toggle').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-target')
+                    const input = document.getElementById(id)
+                    if (input) {
+                        input.type = input.type === 'password' ? 'text' : 'password'
+                        btn.textContent = input.type === 'password' ? 'Show' : 'Hide'
+                    }
+                })
+            })
+        })
+    </script>
+    </head>
+<body>
+    <div class="bg-carousel"></div>
+    <div class="auth-shell">
+        <div class="brand-card">
+            <h1>AniLytics</h1>
+            <p>Rice Distribution Monitor</p>
+            <p style="margin-top:1rem; max-width: 44ch; line-height: 1.5;">Log in to access your personal analytics dashboard, track weekly and monthly performance, and get AI-powered insights tailored to your rice business.</p>
+            <div class="carousel" aria-hidden="true">
+                <div class="carousel-track"></div>
+                
+                <div class="carousel-nav" style="display:none"></div>
+            </div>
+        </div>
+        <div class="login-card">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+            <h2>Welcome back</h2>
+            <form method="POST" action="{{ url_for('login', next=request.args.get('next')) }}">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="pw-wrap">
+                        <input type="password" id="password" name="password" autocomplete="current-password" required>
+                        <button type="button" class="pw-toggle" data-target="password" onclick="window.togglePw('password', this)" aria-label="Toggle password visibility">Show</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">Login</button>
+                <div class="auth-meta">
+                    <span class="muted">No account?</span>
+                    <a href="{{ url_for('register') }}">Create one</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+      window.togglePw = function(id, btn){
+        var el = document.getElementById(id);
+        if(!el) return;
+        el.type = el.type === 'password' ? 'text' : 'password';
+        if(btn) btn.textContent = el.type === 'password' ? 'Show' : 'Hide';
+      }
+    </script>
+</body>
+</html>

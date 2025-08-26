@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Progress - AniLytics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <style>
+    /* Minimal page-local styles for progress bars */
+    .progress-container { background: #f1f3f5; border-radius: 999px; overflow: hidden; height: 16px; }
+    .progress-fill { background: #4a7c59; height: 100%; width: 0%; transition: width 0.4s ease; }
+    .progress-label { display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0; font-size: 0.9rem; color: #2c5530; }
+
+    .month-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+    .month-card { background: #fff; border-radius: 10px; border: 1px solid #e9ecef; padding: 1rem; cursor: pointer; }
+    .month-card h4 { margin-bottom: 0.5rem; color: #2c5530; }
+    .month-meta { font-size: 0.85rem; color: #6c757d; margin-top: 0.5rem; }
+    .badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    .badge.success { background: #e6f4ea; color: #2e7d32; border: 1px solid #a5d6a7; }
+    .badge.warn { background: #fff4e5; color: #b26a00; border: 1px solid #ffcc80; }
+    .header-row { display: flex; align-items: center; gap: 1rem; }
+    .header-row .spacer { flex: 1; }
+    .month-details { display: none; margin-top: 0.5rem; }
+    .month-card.open .month-details { display: block; }
+    .week-list { list-style: none; padding-left: 0; margin: 0.5rem 0 0; }
+    .week-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+    .week-badge { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: #dee2e6; }
+    .week-badge.complete { background: #4a7c59; }
+    .week-badge.missing { background: #dc3545; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <h1>AniLytics</h1>
+        <span>Rice Distribution Monitor</span>
+      </div>
+      <div class="nav-menu" id="navMenu">
+        <a href="/" class="nav-link">🏠 Dashboard</a>
+        <a href="/input" class="nav-link">➕ Add Data</a>
+        <a href="/analytics" class="nav-link">📈 Analytics</a>
+        <a href="/history" class="nav-link active">🕑 Progress</a>
+        <a href="/logout" class="nav-link" style="margin-left:auto">🚪 Logout</a>
+      </div>
+      <div class="nav-toggle" id="navToggle">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="container">
+      <div class="analytics-section">
+        <div class="header-row">
+          <div>
+            <h2>Data Entry Progress</h2>
+            <p>Track completeness by year and month, including weekly coverage.</p>
+          </div>
+          <div class="spacer"></div>
+          <div class="control-group">
+            <label for="historyYear">Year</label>
+            <select id="historyYear"></select>
+          </div>
+          <div>
+            <button id="historyApply" class="btn-primary" type="button">Apply</button>
+            <button id="historyReset" class="btn-secondary" type="button">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="analytics-section" id="yearProgressSection">
+        <h3>Year Progress</h3>
+        <div class="progress-label">
+          <span id="yearLabel">Year</span>
+          <strong id="yearPercent">0%</strong>
+        </div>
+        <div class="progress-container">
+          <div id="yearProgress" class="progress-fill" style="width:0%"></div>
+        </div>
+        <p class="month-meta" id="yearMeta"></p>
+      </div>
+
+      <div class="analytics-section">
+        <h3>Monthly Coverage</h3>
+        <div id="monthsGrid" class="month-grid"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    async function loadAvailableYearsInto(selectEl) {
+      try {
+        const res = await fetch('/api/available-years');
+        const data = await res.json();
+        const years = Array.isArray(data.years) ? data.years : [];
+        selectEl.innerHTML = '';
+        if (years.length === 0) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'No years';
+          selectEl.appendChild(opt);
+        } else {
+          years.forEach((y) => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            selectEl.appendChild(opt);
+          });
+        }
+        return years;
+      } catch (e) {
+        console.error('Error loading available years:', e);
+        return [];
+      }
+    }
+
+    function renderYearProgress(payload) {
+      const { year, year_progress, year_complete, has_year_entry } = payload;
+      const yearLabel = document.getElementById('yearLabel');
+      const yearPercent = document.getElementById('yearPercent');
+      const yearProgress = document.getElementById('yearProgress');
+      const yearMeta = document.getElementById('yearMeta');
+
+      yearLabel.textContent = `Year ${year}`;
+      yearPercent.textContent = `${year_progress}%`;
+      yearProgress.style.width = `${year_progress}%`;
+      yearMeta.textContent = has_year_entry
+        ? 'Year-level entry present: marked complete for the entire year.'
+        : (year_complete ? 'All months complete.' : 'Some months incomplete.');
+    }
+
+    function renderMonths(payload) {
+      const grid = document.getElementById('monthsGrid');
+      const months = payload.months || [];
+      grid.innerHTML = months.map((m) => {
+        const statusBadge = m.complete
+          ? '<span class="badge success">Complete</span>'
+          : '<span class="badge warn">In Progress</span>';
+        const weeksMsg = m.total_weeks > 0
+          ? `${(m.weeks_present || []).length}/${m.total_weeks} weeks`
+          : '0/0 weeks';
+        const presentWeeks = new Set(m.weeks_present || []);
+        const weekItems = Array.from({ length: Number(m.total_weeks || 0) }, (_, i) => {
+          const w = i + 1;
+          const present = presentWeeks.has(w);
+          return `<li class="week-item"><span class="week-badge ${present ? 'complete' : 'missing'}"></span>Week ${w} - ${present ? 'Present' : 'Missing'}</li>`
+        }).join('');
+        return `
+          <div class="month-card" data-month="${m.month}">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+              <h4>${m.label}</h4>
+              ${statusBadge}
+            </div>
+            <div class="progress-label">
+              <span>${weeksMsg}</span>
+              <strong>${m.progress}%</strong>
+            </div>
+            <div class="progress-container">
+              <div class="progress-fill" style="width:${m.progress}%"></div>
+            </div>
+            <div class="month-meta">
+              Records: ${m.records} · Weeks present: ${(m.weeks_present || []).join(', ') || '—'}
+            </div>
+            <div class="month-details">
+              <ul class="week-list">${weekItems}</ul>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Toggle week details on card click
+      grid.querySelectorAll('.month-card').forEach((card) => {
+        card.addEventListener('click', () => {
+          card.classList.toggle('open');
+        });
+      });
+    }
+
+    async function fetchProgress(year) {
+      const params = new URLSearchParams();
+      if (year) params.append('year', year);
+      const res = await fetch(`/api/progress?${params.toString()}`);
+      return res.json();
+    }
+
+    async function initHistory() {
+      const yearSelect = document.getElementById('historyYear');
+      const applyBtn = document.getElementById('historyApply');
+      const resetBtn = document.getElementById('historyReset');
+      // const loadingSpinner = document.getElementById('globalLoadingSpinner'); // Removed global loading spinner
+
+      const years = await loadAvailableYearsInto(yearSelect);
+      let payload = await fetchProgress(yearSelect.value);
+
+      // If API chose a default year and dropdown is empty or missing it, select that
+      if (payload && payload.year && years.length) {
+        const found = Array.from(yearSelect.options).some(o => String(o.value) === String(payload.year));
+        if (found) yearSelect.value = payload.year;
+      }
+
+      renderYearProgress(payload);
+      renderMonths(payload);
+
+      applyBtn.addEventListener('click', async () => {
+        const y = yearSelect.value;
+        const p = await fetchProgress(y);
+        renderYearProgress(p);
+        renderMonths(p);
+      });
+
+      resetBtn.addEventListener('click', async () => {
+        yearSelect.value = '';
+        const p = await fetchProgress('');
+        renderYearProgress(p);
+        renderMonths(p);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initHistory);
+  </script>
+</body>
+</html>

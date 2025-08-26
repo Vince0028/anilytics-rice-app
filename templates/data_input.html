@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Data - AniLytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>AniLytics</h1>
+                <span>Rice Distribution Monitor</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="/" class="nav-link">🏠 Dashboard</a>
+                <a href="/input" class="nav-link active">➕ Add Data</a>
+                <a href="/analytics" class="nav-link">📈 Analytics</a>
+                <a href="/history" class="nav-link">🕑 Progress</a>
+                <a href="/logout" class="nav-link" style="margin-left:auto">🚪 Logout</a>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="form-header">
+                <h2>Rice Distribution Data Entry</h2>
+                <p>Enter your rice sales data with flexible time period selection</p>
+            </div>
+
+            <form method="POST" action="/data_input" class="data-form" id="dataForm">
+                <div class="form-section">
+                    <h3>Time Period Selection</h3>
+                    <p class="form-help-text">Choose the level of detail for your data entry. You can input data for a whole year, month, week, or specific day.</p>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="year">Year *</label>
+                            <select id="year" name="year" required onchange="updateTimePeriods()">
+                                <option value="">Select Year</option>
+                                <option value="2024">2024</option>
+                                <option value="2025" selected>2025</option>
+                                <option value="2026">2026</option>
+                                <option value="2027">2027</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="month">Month</label>
+                            <select id="month" name="month" onchange="updateTimePeriods()">
+                                <option value="">All Months (Yearly Data)</option>
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="week">Week</label>
+                            <select id="week" name="week" onchange="updateTimePeriods()">
+                                <option value="">All Weeks (Monthly Data)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="day">Day</label>
+                            <select id="day" name="day" onchange="updateTimePeriods()">
+                                <option value="">All Days (Weekly Data)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="data-level-indicator">
+                        <strong>Data Level:</strong> <span id="dataLevel">Please select year</span>
+                    </div>
+                    
+                    <div class="date-preview">
+                        <strong>Selected Period:</strong> <span id="datePreview">Please select time period</span>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>Data Entry</h3>
+                    <div class="data-type-info" id="dataTypeInfo">
+                        <p>Select your time period above to see what type of data you'll be entering.</p>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="rice_sold">Rice Sold (kg) *</label>
+                            <input type="number" id="rice_sold" name="rice_sold" step="0.1" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="rice_unsold">Rice Unsold (kg) *</label>
+                            <input type="number" id="rice_unsold" name="rice_unsold" step="0.1" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="price_per_kg">Price per Kilogram (₱) *</label>
+                            <input type="number" id="price_per_kg" name="price_per_kg" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>Market Analysis</h3>
+                    <div class="form-help-text" style="display:flex;align-items:center;gap:.5rem;">
+                        <input type="checkbox" id="autofillToggle" checked>
+                        <label for="autofillToggle" style="margin:0;cursor:pointer;">Auto-fill these fields from your last saved entry for the selected year/month (you can still edit).</label>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="population">Population in Area *</label>
+                            <input type="number" id="population" name="population" min="100" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="avg_consumption">Average Consumption (kg/person/week) *</label>
+                            <input type="number" id="avg_consumption" name="avg_consumption" step="0.1" min="0.1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="purchasing_power">Purchasing Power Index (0-1) *</label>
+                            <input type="number" id="purchasing_power" name="purchasing_power" step="0.1" min="0" max="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="competitors">Number of Competitors *</label>
+                            <input type="number" id="competitors" name="competitors" min="0" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>Demand Assessment</h3>
+                    <div class="form-group">
+                        <label for="customer_demand">Customer Demand Level *</label>
+                        <select id="customer_demand" name="customer_demand" required>
+                            <option value="">Select Demand Level</option>
+                            <option value="Very Low">Very Low</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Very High">Very High</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>Data Preview</h3>
+                    <div id="wastePreview" class="waste-preview" style="display: none;">
+                        <div id="wasteText" class="waste-text"></div>
+                        <div class="efficiency-indicator">
+                            <span class="efficiency-label">Efficiency Rating:</span>
+                            <span id="efficiencyRating" class="efficiency-rating"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="resetForm()">Reset Form</button>
+                    <button type="submit" class="btn-primary">Save Data</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Initialize date dropdowns
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTimePeriods(); // Call updateTimePeriods to set initial data level
+            // Try to load previous values from localStorage first
+            loadMarketDefaultsFromLocal();
+            // Then fetch from server for the current year/month
+            fetchAndApplyDefaults();
+            // Save on submit to persist latest values
+            document.getElementById('dataForm').addEventListener('submit', saveMarketDefaultsToLocal);
+        });
+
+        function updateTimePeriods() {
+            const year = document.getElementById('year').value;
+            const month = document.getElementById('month').value;
+            const week = document.getElementById('week').value;
+            const day = document.getElementById('day').value;
+            
+            const dataLevelSpan = document.getElementById('dataLevel');
+            const datePreviewSpan = document.getElementById('datePreview');
+            const dataTypeInfo = document.getElementById('dataTypeInfo');
+            const monthSelect = document.getElementById('month');
+            const weekSelect = document.getElementById('week');
+            const daySelect = document.getElementById('day');
+
+            // Reset dependent dropdowns when year changes
+            if (year && !month) {
+                monthSelect.disabled = false;
+                weekSelect.disabled = true;
+                daySelect.disabled = true;
+                weekSelect.innerHTML = '<option value="">All Weeks (Monthly Data)</option>';
+                daySelect.innerHTML = '<option value="">All Days (Weekly Data)</option>';
+            }
+
+            // Update week options when month is selected
+            if (year && month && month !== '') {
+                // Rebuild week options but preserve current selection if any
+                updateWeekOptions(year, month, week);
+                weekSelect.disabled = false;
+                daySelect.disabled = true;
+                daySelect.innerHTML = '<option value="">All Days (Weekly Data)</option>';
+                // When month changes, refresh defaults
+                fetchAndApplyDefaults();
+            }
+
+            // Update day options when week is selected
+            if (year && month && month !== '' && week && week !== '') {
+                // Rebuild day options but preserve current selection if any
+                updateDayOptions(year, month, week, day);
+                daySelect.disabled = false;
+            }
+
+            // Update display based on what's selected
+            if (year && month && month !== '' && week && week !== '' && day && day !== '') {
+                dataLevelSpan.textContent = 'Daily Data';
+                dataTypeInfo.innerHTML = 'You are entering data for a <strong>specific day</strong>. This provides the most detailed tracking.';
+                datePreviewSpan.textContent = `${day} ${getMonthName(parseInt(month))} ${year}`;
+            } else if (year && month && month !== '' && week && week !== '') {
+                dataLevelSpan.textContent = 'Weekly Data';
+                dataTypeInfo.innerHTML = 'You are entering data for a <strong>specific week</strong>. This provides weekly pattern analysis.';
+                const startDay = (parseInt(week) - 1) * 7 + 1;
+                const endDay = Math.min(parseInt(week) * 7, new Date(parseInt(year), parseInt(month), 0).getDate());
+                datePreviewSpan.textContent = `Week ${week} (${startDay}-${endDay}) of ${getMonthName(parseInt(month))} ${year}`;
+            } else if (year && month && month !== '') {
+                dataLevelSpan.textContent = 'Monthly Data';
+                dataTypeInfo.innerHTML = 'You are entering data for a <strong>specific month</strong>. This provides monthly trend analysis.';
+                datePreviewSpan.textContent = `${getMonthName(parseInt(month))} ${year}`;
+            } else if (year) {
+                dataLevelSpan.textContent = 'Yearly Data';
+                dataTypeInfo.innerHTML = 'You are entering data for the <strong>entire year</strong>. This provides annual overview and comparisons.';
+                datePreviewSpan.textContent = `Year ${year}`;
+                // For year-only, still try to auto-fill from latest year entry
+                fetchAndApplyDefaults();
+            } else {
+                dataLevelSpan.textContent = 'Please select year';
+                dataTypeInfo.innerHTML = 'Please select a time period to see what type of data you\'ll be entering.';
+                datePreviewSpan.textContent = 'Please select time period';
+            }
+        }
+
+        function updateWeekOptions(year, month, selectedWeek) {
+            const weekSelect = document.getElementById('week');
+            const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+            const totalWeeks = Math.ceil(daysInMonth / 7);
+            
+            weekSelect.innerHTML = '<option value="">All Weeks (Monthly Data)</option>';
+            for (let i = 1; i <= totalWeeks; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                const startDay = (i - 1) * 7 + 1;
+                const endDay = Math.min(i * 7, daysInMonth);
+                option.textContent = `Week ${i} (${startDay}-${endDay})`;
+                weekSelect.appendChild(option);
+            }
+            // Restore previous selection if provided and valid
+            if (selectedWeek) {
+                const val = String(selectedWeek);
+                if ([...weekSelect.options].some(o => o.value === val)) {
+                    weekSelect.value = val;
+                }
+            }
+        }
+
+        function updateDayOptions(year, month, week, selectedDay) {
+            const daySelect = document.getElementById('day');
+            const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+            const startDay = (parseInt(week) - 1) * 7 + 1;
+            const endDay = Math.min(parseInt(week) * 7, daysInMonth);
+            
+            daySelect.innerHTML = '<option value="">All Days (Weekly Data)</option>';
+            for (let day = startDay; day <= endDay; day++) {
+                const option = document.createElement('option');
+                option.value = day;
+                option.textContent = `${day} ${getMonthName(parseInt(month))}`;
+                daySelect.appendChild(option);
+            }
+            // Restore previous selection if provided and within range
+            if (selectedDay) {
+                const val = String(selectedDay);
+                if ([...daySelect.options].some(o => o.value === val)) {
+                    daySelect.value = val;
+                }
+            }
+        }
+
+        function getMonthName(month) {
+            const months = [
+                '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+            ];
+            return months[month];
+        }
+
+        // -------- Auto-fill Market/Demand Fields ---------
+        function setMarketFields(values) {
+            if (!values) return;
+            if (values.population !== null && values.population !== undefined) document.getElementById('population').value = values.population;
+            if (values.avg_consumption !== null && values.avg_consumption !== undefined) document.getElementById('avg_consumption').value = values.avg_consumption;
+            if (values.purchasing_power !== null && values.purchasing_power !== undefined) document.getElementById('purchasing_power').value = values.purchasing_power;
+            if (values.competitors !== null && values.competitors !== undefined) document.getElementById('competitors').value = values.competitors;
+            if (values.customer_demand) document.getElementById('customer_demand').value = values.customer_demand;
+        }
+
+        function loadMarketDefaultsFromLocal() {
+            try {
+                const raw = localStorage.getItem('anilytics_market_defaults');
+                if (!raw) return;
+                const values = JSON.parse(raw);
+                setMarketFields(values);
+            } catch (e) { /* ignore */ }
+        }
+
+        function saveMarketDefaultsToLocal() {
+            try {
+                const values = {
+                    population: parseInt(document.getElementById('population').value || '0', 10),
+                    avg_consumption: parseFloat(document.getElementById('avg_consumption').value || '0'),
+                    purchasing_power: parseFloat(document.getElementById('purchasing_power').value || '0'),
+                    competitors: parseInt(document.getElementById('competitors').value || '0', 10),
+                    customer_demand: document.getElementById('customer_demand').value || ''
+                };
+                localStorage.setItem('anilytics_market_defaults', JSON.stringify(values));
+            } catch (e) { /* ignore */ }
+        }
+
+        async function fetchAndApplyDefaults() {
+            const auto = document.getElementById('autofillToggle');
+            if (auto && !auto.checked) return; // respect user choice
+
+            const year = document.getElementById('year').value;
+            if (!year) return;
+            const month = document.getElementById('month').value;
+            const params = new URLSearchParams();
+            params.append('year', year);
+            if (month) params.append('month', month);
+
+            try {
+                const res = await fetch(`/api/defaults?${params.toString()}`);
+                const data = await res.json();
+                if (!data.error) {
+                    setMarketFields(data);
+                }
+            } catch (e) {
+                // non-fatal
+            }
+        }
+
+        function resetForm() {
+            if (confirm('Are you sure you want to reset all form data?')) {
+                document.getElementById('dataForm').reset();
+                document.getElementById('wastePreview').style.display = 'none';
+                document.getElementById('datePreview').textContent = 'Please select time period';
+                document.getElementById('dataLevel').textContent = 'Please select year';
+                document.getElementById('dataTypeInfo').textContent = 'Please select a time period to see what type of data you\'ll be entering.';
+                
+                // Reset dropdowns
+                document.getElementById('month').disabled = true;
+                document.getElementById('week').disabled = true;
+                document.getElementById('day').disabled = true;
+            }
+        }
+
+        // Enhanced form validation
+        document.getElementById('dataForm').addEventListener('submit', function(e) {
+            const riceSold = parseFloat(document.getElementById('rice_sold').value);
+            const riceUnsold = parseFloat(document.getElementById('rice_unsold').value);
+            const price = parseFloat(document.getElementById('price_per_kg').value);
+            const population = parseInt(document.getElementById('population').value);
+            
+            if (riceSold + riceUnsold > 10000) {
+                e.preventDefault();
+                alert('Total rice quantity seems unusually high. Please verify your data.');
+                return;
+            }
+            
+            if (price > 200) {
+                e.preventDefault();
+                alert('Price per kilogram seems unusually high. Please verify your data.');
+                return;
+            }
+            
+            if (population > 100000) {
+                e.preventDefault();
+                alert('Population seems unusually high for a local market area. Please verify your data.');
+                return;
+            }
+        });
+    </script>
+</body>
+</html>
+

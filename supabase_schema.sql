@@ -1,0 +1,72 @@
+-- Enable UUID extension
+create extension if not exists "uuid-ossp";
+
+-- PROFILES: standalone (no longer tied to auth.users)
+create table if not exists public.profiles (
+  id uuid primary key default uuid_generate_v4(),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  first_name text,
+  last_name text,
+  email text unique,
+  password_hash text
+);
+
+-- Safe alterations for existing projects previously referencing auth.users
+alter table public.profiles alter column id set default uuid_generate_v4();
+alter table public.profiles add column if not exists password_hash text;
+alter table public.profiles add column if not exists email text;
+alter table public.profiles add column if not exists first_name text;
+alter table public.profiles add column if not exists last_name text;
+
+-- SALES table
+create table if not exists public.sales (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null,
+  timestamp timestamptz not null default now(),
+  week_date text not null,
+  data_level text not null check (data_level in ('daily','weekly','monthly','yearly')),
+  year int,
+  month int,
+  week int,
+  day int,
+  rice_sold numeric,
+  rice_unsold numeric,
+  price_per_kg numeric,
+  population int,
+  avg_consumption numeric,
+  purchasing_power numeric,
+  competitors int,
+  customer_demand text,
+  predicted_demand numeric,
+  waste_percentage numeric,
+  total_revenue numeric
+);
+
+-- Replace old FK to auth.users with profiles(id)
+-- Drop previous constraint if it exists
+do $$
+begin
+  if exists (
+    select 1 from information_schema.table_constraints
+    where constraint_name = 'sales_user_id_fkey'
+      and table_name = 'sales'
+  ) then
+    alter table public.sales drop constraint sales_user_id_fkey;
+  end if;
+exception when undefined_table then null;
+end $$;
+
+alter table public.sales
+  add constraint sales_user_id_fkey foreign key (user_id) references public.profiles(id) on delete cascade;
+
+-- RLS (optional; disable if using direct SQL without Supabase Auth)
+-- alter table public.sales enable row level security;
+-- alter table public.profiles enable row level security;
+
+-- Helpful indexes
+create index if not exists idx_sales_user_id on public.sales(user_id);
+create index if not exists idx_sales_year_month on public.sales(year, month);
+create index if not exists idx_profiles_email on public.profiles(lower(email));
+
+
