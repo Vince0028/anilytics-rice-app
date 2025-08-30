@@ -81,6 +81,27 @@ def login_required(view_func):
         return view_func(*args, **kwargs)
     return _wrapped
 
+def role_required(*roles):
+    @wraps(roles[0] if roles else (lambda x: x))
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped(*args, **kwargs):
+            user = session.get('sb_user')
+            if not user:
+                if request.path.startswith('/api') or request.accept_mimetypes.best == 'application/json':
+                    return jsonify({"error": "Unauthorized"}), 401
+                return redirect(url_for('login', next=request.path))
+            if roles and user.get('role') not in roles:
+                if request.path.startswith('/api') or request.accept_mimetypes.best == 'application/json':
+                    return jsonify({"error": "Forbidden"}), 403
+                flash('You do not have access to this page', 'error')
+                if user.get('role') == 'consumer':
+                    return redirect(url_for('consumer_dashboard'))
+                return redirect(url_for('dashboard'))
+            return view_func(*args, **kwargs)
+        return _wrapped
+    return decorator
+
 def load_data():
     """Load sales data for the current user from Postgres (direct SQL)."""
     try:
@@ -558,6 +579,8 @@ def to_serializable(val):
         return float(val)
     if isinstance(val, datetime):
         return val.isoformat()
+    if isinstance(val, dt.date):
+        return val.isoformat()
     return val
 
 def serialize_entry(entry):
@@ -567,16 +590,21 @@ def serialize_entry(entry):
 @login_required
 def dashboard():
     """Main dashboard with statistics and charts"""
-    return render_template('dashboard.html')
+    user = session.get('sb_user')
+    if user and user.get('role') == 'consumer':
+        return redirect(url_for('consumer_dashboard'))
+    return render_template('dashboard.html', user=user)
 
 @app.route('/input')
 @login_required
+@role_required('retailer')
 def data_input():
     """Data input form"""
     return render_template('data_input.html')
 
 @app.route('/data_input', methods=['POST'])
 @login_required
+@role_required('retailer')
 def submit_data():
     """Handle form submission with flexible time periods"""
     try:
@@ -1182,8 +1210,6 @@ def generate_forecast():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
- 
-
 @app.route('/api/available-years', methods=['GET'])
 @login_required
 def get_available_years():
@@ -1266,10 +1292,342 @@ def delete_sales_data(sales_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+# ---------------------------
+# Retailer Inventory Endpoints
+# ---------------------------
+@app.route('/api/retailer/inventory', methods=['GET'])
+@login_required
+@role_required('retailer')
+def retailer_inventory_list():
+    """List current retailer's inventory with optional filters."""
+    try:
+        user = session.get('sb_user')
+        if not user:
+            return jsonify({"error": "Unauthorized"}), 401
+        params = [user['id']]
+        where = ["retailer_id = %s"]
+        date_exact = request.args.get('date')  # YYYY-MM-DD
+        date_from = request.args.get('from')
+        date_to = request.args.get('to')
+        variety = request.args.get('variety')
+        min_price = request.args.get('min_price', type=float)
+        max_price = request.args.get('max_price', type=float)
+        if date_exact:
+            where.append("date_posted = %s")
+            params.append(date_exact)
+        else:
+            if date_from:
+                where.append("date_posted >= %s")
+                params.append(date_from)
+            if date_to:
+                where.append("date_posted <= %s")
+                params.append(date_to)
+        if variety:
+            where.append("LOWER(rice_variety) LIKE %s")
+            params.append(f"%{variety.lower()}%")
+        if min_price is not None:
+            where.append("price_per_kg >= %s")
+            params.append(min_price)
+        if max_price is not None:
+            where.append("price_per_kg <= %s")
+            params.append(max_price)
+        sql = (
+            "SELECT id, retailer_id, date_posted, rice_variety, stock_kg, price_per_kg, created_at "
+            "FROM retailer_inventory WHERE " + " AND ".join(where) + " ORDER BY date_posted DESC, created_at DESC"
+        )
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(sql, tuple(params))
+        columns = [d[0] for d in cur.description]
+        rows = [dict(zip(columns, r)) for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+        return jsonify([serialize_entry(r) for r in rows])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/api/retailer/inventory', methods=['POST'])
+@login_required
+@role_required('retailer')
+def retailer_inventory_create():
+    """Create a new inventory entry for the current retailer."""
+    try:
+        user = session.get('sb_user')
+        if not user:
+            return jsonify({"error": "Unauthorized"}), 401
+        data = request.get_json(force=True) if request.is_json else request.form
+        rice_variety = (data.get('rice_variety') or '').strip() or None
+        stock_kg = data.get('stock_kg')
+        price_per_kg = data.get('price_per_kg')
+        date_posted = data.get('date_posted')  # optional YYYY-MM-DD
+        if stock_kg is None or price_per_kg is None:
+            return jsonify({"error": "stock_kg and price_per_kg are required"}), 400
+        try:
+            stock_kg = float(stock_kg)
+            price_per_kg = float(price_per_kg)
+        except Exception:
+            return jsonify({"error": "stock_kg and price_per_kg must be numeric"}), 400
+        inv_id = str(uuid.uuid4())
+        conn = get_db_connection()
+        cur = conn.cursor()
+        if date_posted:
+            cur.execute(
+                """
+                INSERT INTO retailer_inventory (id, retailer_id, date_posted, rice_variety, stock_kg, price_per_kg, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, now())
+                """,
+                (inv_id, user['id'], date_posted, rice_variety, stock_kg, price_per_kg)
+            )
+        else:
+            cur.execute(
+                """
+                INSERT INTO retailer_inventory (id, retailer_id, rice_variety, stock_kg, price_per_kg, created_at)
+                VALUES (%s, %s, %s, %s, %s, now())
+                """,
+                (inv_id, user['id'], rice_variety, stock_kg, price_per_kg)
+            )
+        conn.commit()
+        cur.execute("SELECT id, retailer_id, date_posted, rice_variety, stock_kg, price_per_kg, created_at FROM retailer_inventory WHERE id = %s", (inv_id,))
+        columns = [d[0] for d in cur.description]
+        row = dict(zip(columns, cur.fetchone()))
+        cur.close()
+        conn.close()
+        return jsonify(serialize_entry(row)), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/api/retailer/inventory/<inv_id>', methods=['GET'])
+@login_required
+@role_required('retailer')
+def retailer_inventory_get(inv_id):
+    """Get a single inventory entry for the current retailer."""
+    try:
+        user = session.get('sb_user')
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, retailer_id, date_posted, rice_variety, stock_kg, price_per_kg, created_at FROM retailer_inventory WHERE id = %s AND retailer_id = %s",
+            (inv_id, user['id'])
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            return jsonify({"error": "Not found"}), 404
+        cols = ['id','retailer_id','date_posted','rice_variety','stock_kg','price_per_kg','created_at']
+        return jsonify(serialize_entry(dict(zip(cols, row))))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/api/retailer/inventory/<inv_id>', methods=['PUT','PATCH'])
+@login_required
+@role_required('retailer')
+def retailer_inventory_update(inv_id):
+    """Update an existing inventory entry for the current retailer."""
+    try:
+        user = session.get('sb_user')
+        data = request.get_json(force=True)
+        fields = []
+        values = []
+        if data.get('date_posted'):
+            fields.append('date_posted = %s')
+            values.append(data.get('date_posted'))
+        if 'rice_variety' in data:
+            fields.append('rice_variety = %s')
+            values.append((data.get('rice_variety') or '').strip() or None)
+        if 'stock_kg' in data:
+            try:
+                values.append(float(data.get('stock_kg')))
+                fields.append('stock_kg = %s')
+            except Exception:
+                return jsonify({"error": "stock_kg must be numeric"}), 400
+        if 'price_per_kg' in data:
+            try:
+                values.append(float(data.get('price_per_kg')))
+                fields.append('price_per_kg = %s')
+            except Exception:
+                return jsonify({"error": "price_per_kg must be numeric"}), 400
+        if not fields:
+            return jsonify({"error": "No updatable fields provided"}), 400
+        values.extend([inv_id, user['id']])
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(f"UPDATE retailer_inventory SET {', '.join(fields)} WHERE id = %s AND retailer_id = %s", tuple(values))
+        if cur.rowcount == 0:
+            conn.rollback()
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Not found"}), 404
+        conn.commit()
+        cur.execute("SELECT id, retailer_id, date_posted, rice_variety, stock_kg, price_per_kg, created_at FROM retailer_inventory WHERE id = %s", (inv_id,))
+        columns = [d[0] for d in cur.description]
+        row = dict(zip(columns, cur.fetchone()))
+        cur.close()
+        conn.close()
+        return jsonify(serialize_entry(row))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/api/retailer/inventory/<inv_id>', methods=['DELETE'])
+@login_required
+@role_required('retailer')
+def retailer_inventory_delete(inv_id):
+    """Delete an inventory entry belonging to the current retailer."""
+    try:
+        user = session.get('sb_user')
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM retailer_inventory WHERE id = %s AND retailer_id = %s", (inv_id, user['id']))
+        if cur.rowcount == 0:
+            conn.rollback()
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Not found"}), 404
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"message": "Inventory item deleted"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+# ---------------------------
+# Consumer Inventory Browse
+# ---------------------------
+@app.route('/api/inventory', methods=['GET'])
+@login_required
+@role_required('consumer')
+def consumer_inventory_browse():
+    """Browse live inventory across retailers.
+    Query params:
+      - latest: 1|0 (default 1) -> latest per retailer/variety
+      - date: YYYY-MM-DD (when latest=0, default = today)
+      - variety: text contains
+      - area: text contains (from profiles.retailer_area)
+      - min_price, max_price: numeric filters
+    """
+    try:
+        latest = bool(request.args.get('latest', default=1, type=int))
+        date_exact = request.args.get('date')
+        variety = request.args.get('variety')
+        area = request.args.get('area')
+        min_price = request.args.get('min_price', type=float)
+        max_price = request.args.get('max_price', type=float)
+        retailer_id_filter = request.args.get('retailer_id')
+        conn = get_db_connection()
+        cur = conn.cursor()
+        if latest:
+            sql = (
+                """
+                SELECT DISTINCT ON (ri.retailer_id, COALESCE(ri.rice_variety, ''))
+                    ri.id, ri.retailer_id, ri.date_posted, ri.rice_variety, ri.stock_kg, ri.price_per_kg, ri.created_at,
+                    p.retailer_company, p.retailer_area, p.retailer_location
+                FROM retailer_inventory ri
+                JOIN profiles p ON p.id = ri.retailer_id
+                """
+            )
+            where = []
+            params = []
+            if variety:
+                where.append("LOWER(ri.rice_variety) LIKE %s")
+                params.append(f"%{variety.lower()}%")
+            if area:
+                where.append("LOWER(p.retailer_area) LIKE %s")
+                params.append(f"%{area.lower()}%")
+            if min_price is not None:
+                where.append("ri.price_per_kg >= %s")
+                params.append(min_price)
+            if max_price is not None:
+                where.append("ri.price_per_kg <= %s")
+                params.append(max_price)
+            if retailer_id_filter:
+                where.append("ri.retailer_id = %s")
+                params.append(retailer_id_filter)
+            if date_exact:
+                where.append("ri.date_posted = %s")
+                params.append(date_exact)
+            if where:
+                sql += " WHERE " + " AND ".join(where)
+            sql += " ORDER BY ri.retailer_id, COALESCE(ri.rice_variety, ''), ri.date_posted DESC, ri.created_at DESC"
+            cur.execute(sql, tuple(params))
+        else:
+            sql = (
+                """
+                SELECT ri.id, ri.retailer_id, ri.date_posted, ri.rice_variety, ri.stock_kg, ri.price_per_kg, ri.created_at,
+                       p.retailer_company, p.retailer_area, p.retailer_location
+                FROM retailer_inventory ri
+                JOIN profiles p ON p.id = ri.retailer_id
+                """
+            )
+            where = []
+            params = []
+            if date_exact:
+                where.append("ri.date_posted = %s")
+                params.append(date_exact)
+            else:
+                where.append("ri.date_posted = current_date")
+            if variety:
+                where.append("LOWER(ri.rice_variety) LIKE %s")
+                params.append(f"%{variety.lower()}%")
+            if area:
+                where.append("LOWER(p.retailer_area) LIKE %s")
+                params.append(f"%{area.lower()}%")
+            if min_price is not None:
+                where.append("ri.price_per_kg >= %s")
+                params.append(min_price)
+            if max_price is not None:
+                where.append("ri.price_per_kg <= %s")
+                params.append(max_price)
+            if retailer_id_filter:
+                where.append("ri.retailer_id = %s")
+                params.append(retailer_id_filter)
+            if where:
+                sql += " WHERE " + " AND ".join(where)
+            sql += " ORDER BY ri.date_posted DESC, ri.created_at DESC"
+            cur.execute(sql, tuple(params))
+        columns = [d[0] for d in cur.description]
+        rows = [dict(zip(columns, r)) for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+        return jsonify([serialize_entry(r) for r in rows])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/api/company/<retailer_id>', methods=['GET'])
+@login_required
+def api_company_profile(retailer_id):
+    """Fetch basic retailer profile info for a company page."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, retailer_company, retailer_area, retailer_location
+            FROM profiles
+            WHERE id = %s AND (role = 'retailer' OR role IS NULL)
+            """,
+            (retailer_id,)
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            return jsonify({"error": "Company not found"}), 404
+        return jsonify({
+            "id": row[0],
+            "retailer_company": row[1],
+            "retailer_area": row[2],
+            "retailer_location": row[3],
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     # If already authenticated, go to dashboard
     if request.method == 'GET' and session.get('sb_user'):
+        user = session.get('sb_user')
+        if user and user.get('role') == 'consumer':
+            return redirect(url_for('consumer_dashboard'))
         return redirect(url_for('dashboard'))
     if request.method == 'POST':
         email_raw = request.form.get('email', '').strip().lower()
@@ -1277,7 +1635,7 @@ def login():
         try:
             conn = get_db_connection()
             cur = conn.cursor()
-            cur.execute("SELECT id, email, password_hash, first_name, last_name FROM profiles WHERE email = %s", (email_raw,))
+            cur.execute("SELECT id, email, password_hash, first_name, last_name, role, retailer_company, retailer_area, retailer_location FROM profiles WHERE email = %s", (email_raw,))
             user = cur.fetchone()
             cur.close()
             conn.close()
@@ -1289,10 +1647,19 @@ def login():
                 'email': user[1],
                 'first_name': user[3],
                 'last_name': user[4],
+                'role': user[5] or 'consumer',
+                'retailer_company': user[6],
+                'retailer_area': user[7],
+                'retailer_location': user[8],
             }
             session['sb_user'] = user_obj
             flash('Logged in successfully', 'success')
-            next_url = request.args.get('next') or url_for('dashboard')
+            next_url = request.args.get('next')
+            if not next_url:
+                if user_obj.get('role') == 'consumer':
+                    next_url = url_for('consumer_dashboard')
+                else:
+                    next_url = url_for('dashboard')
             return redirect(next_url)
         except Exception as e:
             print(f"[login] Login failed for {email_raw}: {e}")
@@ -1314,12 +1681,33 @@ def login():
 def register():
     # If already authenticated, go to dashboard
     if request.method == 'GET' and session.get('sb_user'):
+        user = session.get('sb_user')
+        if user and user.get('role') == 'consumer':
+            return redirect(url_for('consumer_dashboard'))
         return redirect(url_for('dashboard'))
     if request.method == 'POST':
         email_raw = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         first_name = request.form.get('first_name', '').strip()
         last_name = request.form.get('last_name', '').strip()
+        role = (request.form.get('role') or 'consumer').strip().lower()
+        if role not in ('consumer', 'retailer'):
+            role = 'consumer'
+        retailer_company = request.form.get('retailer_company')
+        retailer_area = request.form.get('retailer_area')
+        retailer_location = request.form.get('retailer_location')
+        if role == 'retailer':
+            # Basic validation for retailer-specific fields
+            missing = []
+            if not retailer_company or retailer_company.strip() == '':
+                missing.append('Company name')
+            if not retailer_area or retailer_area.strip() == '':
+                missing.append('Area')
+            if not retailer_location or retailer_location.strip() == '':
+                missing.append('Location')
+            if missing:
+                flash('Missing required retailer fields: ' + ', '.join(missing), 'error')
+                return redirect(url_for('register'))
         try:
             conn = get_db_connection()
             cur = conn.cursor()
@@ -1332,7 +1720,25 @@ def register():
                 return redirect(url_for('register'))
             user_id = str(uuid.uuid4())
             password_hash = generate_password_hash(password)
-            cur.execute("INSERT INTO profiles (id, first_name, last_name, email, password_hash, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, now(), now())", (user_id, first_name, last_name, email_raw, password_hash))
+            cur.execute(
+                """
+                INSERT INTO profiles (
+                    id, first_name, last_name, email, password_hash, role,
+                    retailer_company, retailer_area, retailer_location,
+                    created_at, updated_at
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s,
+                    now(), now()
+                )
+                """,
+                (
+                    user_id, first_name, last_name, email_raw, password_hash, role,
+                    retailer_company if role == 'retailer' else None,
+                    retailer_area if role == 'retailer' else None,
+                    retailer_location if role == 'retailer' else None,
+                )
+            )
             conn.commit()
             cur.close()
             conn.close()
@@ -1358,6 +1764,22 @@ def register():
 def serve_image(filename: str):
     """Serve files from the `image/` directory so they can be used in templates."""
     return send_from_directory('image', filename)
+
+@app.route('/consumer')
+@login_required
+def consumer_dashboard():
+    user = session.get('sb_user')
+    if user and user.get('role') == 'retailer':
+        return redirect(url_for('dashboard'))
+    return render_template('consumer_dashboard.html', user=user)
+
+@app.route('/company/<retailer_id>')
+@login_required
+def company_page(retailer_id):
+    """Company detail page for consumers to view retailer-specific inventory and stats."""
+    user = session.get('sb_user')
+    # Retailers can be redirected to their dashboard or allowed; here we allow view for simplicity
+    return render_template('company.html', retailer_id=retailer_id, user=user)
 
 @app.route('/logout')
 def logout():

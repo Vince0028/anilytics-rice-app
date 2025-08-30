@@ -55,7 +55,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { document.querySelectorAll('.flash').forEach(el => el.style.display = 'none') }, 4000)
             // Carousel logic
-            const images = {{ (carousel_images or [])|tojson }}
+            const images = JSON.parse(document.getElementById('carouselData')?.textContent || '[]')
             // Build background dual rows
             const buildBg = () => {
               const bg = document.querySelector('.bg-carousel')
@@ -116,6 +116,7 @@
             })
         })
     </script>
+    <script type="application/json" id="carouselData">{{ (carousel_images or [])|tojson }}</script>
     </head>
 <body class="auth">
     <div class="bg-carousel"></div>
@@ -148,7 +149,7 @@
                     <label for="password">Password</label>
                     <div class="pw-wrap">
                         <input type="password" id="password" name="password" autocomplete="current-password" required>
-                        <button type="button" class="pw-toggle" data-target="password" onclick="window.togglePw('password', this)" aria-label="Toggle password visibility">Show</button>
+                        <button type="button" class="pw-toggle" data-target="password" aria-label="Toggle password visibility">Show</button>
                     </div>
                 </div>
                 <button type="submit" class="btn-primary">Login</button>
@@ -159,13 +160,5 @@
             </form>
         </div>
     </div>
-    <script>
-      window.togglePw = function(id, btn){
-        var el = document.getElementById(id);
-        if(!el) return;
-        el.type = el.type === 'password' ? 'text' : 'password';
-        if(btn) btn.textContent = el.type === 'password' ? 'Show' : 'Hide';
-      }
-    </script>
 </body>
 </html>

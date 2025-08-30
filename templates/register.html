@@ -52,7 +52,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { document.querySelectorAll('.flash').forEach(el => el.style.display = 'none') }, 4000)
-            const images = {{ (carousel_images or [])|tojson if carousel_images is defined else '[]' }}
+            const images = {{ (carousel_images | default([], true)) | tojson }}
             const track = document.querySelector('.carousel-track')
             const dotsWrap = document.querySelector('.carousel-nav')
             const buildBg = () => {
@@ -95,6 +95,31 @@
                 if (images.length > 1 && !reduceMotion) setInterval(next, 15000)
                 buildBg()
             }
+            // Password visibility toggles
+            document.querySelectorAll('.pw-toggle').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-target')
+                    const input = document.getElementById(id)
+                    if (input) {
+                        input.type = input.type === 'password' ? 'text' : 'password'
+                        btn.textContent = input.type === 'password' ? 'Show' : 'Hide'
+                    }
+                })
+            })
+            // Role-based retailer fields toggle
+            const roleRadios = document.querySelectorAll('input[name="role"]')
+            const retailerFields = document.getElementById('retailerFields')
+            const toggleRetailerFields = () => {
+                const selected = document.querySelector('input[name="role"]:checked')
+                const isRetailer = selected && selected.value === 'retailer'
+                if (retailerFields) retailerFields.style.display = isRetailer ? 'block' : 'none'
+                ;['retailer_company','retailer_area','retailer_location'].forEach(id => {
+                    const el = document.getElementById(id)
+                    if (el) el.toggleAttribute('required', isRetailer)
+                })
+            }
+            roleRadios.forEach(r => r.addEventListener('change', toggleRetailerFields))
+            toggleRetailerFields()
         })
     </script>
 </head>
@@ -135,10 +160,31 @@
                     <input type="email" id="email" name="email" autocomplete="username" required>
                 </div>
                 <div class="form-group">
+                    <label>Account type</label>
+                    <div style="display:flex; gap:1rem; align-items:center">
+                        <label><input type="radio" name="role" value="consumer" checked> Consumer</label>
+                        <label><input type="radio" name="role" value="retailer"> Retailer</label>
+                    </div>
+                </div>
+                <div id="retailerFields" style="display:none">
+                    <div class="form-group">
+                        <label for="retailer_company">Company name</label>
+                        <input type="text" id="retailer_company" name="retailer_company" autocomplete="organization">
+                    </div>
+                    <div class="form-group">
+                        <label for="retailer_area">Area</label>
+                        <input type="text" id="retailer_area" name="retailer_area" placeholder="e.g., Pasay City">
+                    </div>
+                    <div class="form-group">
+                        <label for="retailer_location">Location</label>
+                        <input type="text" id="retailer_location" name="retailer_location" placeholder="e.g., Market Stall A-12">
+                    </div>
+                </div>
+                <div class="form-group">
                     <label for="password">Password</label>
                     <div class="pw-wrap">
                         <input type="password" id="password" name="password" autocomplete="new-password" required>
-                        <button type="button" class="pw-toggle" data-target="password" onclick="window.togglePw('password', this)" aria-label="Toggle password visibility">Show</button>
+                        <button type="button" class="pw-toggle" data-target="password" aria-label="Toggle password visibility">Show</button>
                     </div>
                 </div>
                 <button type="submit" class="btn-primary">Register</button>
@@ -149,13 +195,5 @@
             </form>
         </div>
     </div>
-    <script>
-      window.togglePw = function(id, btn){
-        var el = document.getElementById(id);
-        if(!el) return;
-        el.type = el.type === 'password' ? 'text' : 'password';
-        if(btn) btn.textContent = el.type === 'password' ? 'Show' : 'Hide';
-      }
-    </script>
 </body>
 </html>

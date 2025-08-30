@@ -110,6 +110,43 @@ document.addEventListener("DOMContentLoaded", () => {
     })
 
     loadDashboardData()
+
+    // Retailer inventory section (only present for retailers)
+    const riForm = document.getElementById('retailerInventoryForm')
+    if (riForm) {
+      riForm.addEventListener('submit', handleRetailerInventorySubmit)
+      initRetailerInventoryMultiRow()
+      loadRetailerInventory()
+    }
+  }
+
+  // Consumer inventory page initialization
+  const consumerResultsBody = document.getElementById('inventoryResultsBody')
+  if (consumerResultsBody) {
+    const apply = document.getElementById('invApply')
+    const reset = document.getElementById('invReset')
+    if (apply) apply.addEventListener('click', loadConsumerInventory)
+    if (reset) reset.addEventListener('click', () => {
+      const latestSel = document.getElementById('invLatest')
+      const date = document.getElementById('invDate')
+      const variety = document.getElementById('invVariety')
+      const area = document.getElementById('invArea')
+      const minP = document.getElementById('invMinPrice')
+      const maxP = document.getElementById('invMaxPrice')
+      if (latestSel) latestSel.value = '1'
+      if (date) date.value = ''
+      if (variety) variety.value = ''
+      if (area) area.value = ''
+      if (minP) minP.value = ''
+      if (maxP) maxP.value = ''
+      loadConsumerInventory()
+    })
+    loadConsumerInventory()
+  }
+
+  // Company page initialization
+  if (window.location.pathname.startsWith('/company/')) {
+    initCompanyPage()
   }
 
   // Removed auto-loader for analytics page to avoid double fetch and function collisions
@@ -126,15 +163,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const confirmBtn = document.getElementById('confirmDeleteBtn');
   if (cancelBtn) cancelBtn.onclick = hideDeleteModal;
   if (confirmBtn) confirmBtn.onclick = async function() {
-    if (pendingDeleteId) {
-      try {
+    try {
+      if (pendingDeleteId) {
         await fetch(`/api/sales/${pendingDeleteId}`, { method: "DELETE" });
         location.reload();
-      } catch (error) {
-        alert("Error deleting entry. Please try again.");
+        return;
       }
+      if (pendingInventoryDeleteId) {
+        await fetch(`/api/retailer/inventory/${pendingInventoryDeleteId}`, { method: "DELETE" });
+        pendingInventoryDeleteId = null;
+        if (typeof loadRetailerInventory === 'function') {
+          loadRetailerInventory();
+        }
+      }
+    } catch (error) {
+      alert("Error deleting entry. Please try again.");
+    } finally {
+      hideDeleteModal();
     }
-    hideDeleteModal();
   };
 })
 
@@ -202,6 +248,465 @@ async function loadAnalyticsData() {
     renderTrendsSection(trends)
   } catch (error) {
     console.error("Error loading analytics data:", error)
+  }
+}
+
+// -------------------------------
+// Consumer Inventory (Browse)
+// -------------------------------
+async function loadConsumerInventory() {
+  const body = document.getElementById('inventoryResultsBody')
+  if (!body) return
+  try {
+    const url = new URL('/api/inventory', window.location.origin)
+    const latestSel = document.getElementById('invLatest')
+    const date = document.getElementById('invDate')
+    const variety = document.getElementById('invVariety')
+    const area = document.getElementById('invArea')
+    const minP = document.getElementById('invMinPrice')
+    const maxP = document.getElementById('invMaxPrice')
+    if (latestSel && latestSel.value) url.searchParams.set('latest', latestSel.value)
+    if (date && date.value) url.searchParams.set('date', date.value)
+    if (variety && variety.value) url.searchParams.set('variety', variety.value)
+    if (area && area.value) url.searchParams.set('area', area.value)
+    if (minP && minP.value) url.searchParams.set('min_price', minP.value)
+    if (maxP && maxP.value) url.searchParams.set('max_price', maxP.value)
+    const res = await fetch(url.toString())
+    const data = await res.json()
+    if (Array.isArray(data)) {
+      renderConsumerInventoryTable(data)
+    } else {
+      body.innerHTML = '<tr><td colspan="3">No results</td></tr>'
+    }
+  } catch (e) {
+    console.error('Error loading consumer inventory:', e)
+  }
+}
+
+function renderConsumerInventoryTable(items) {
+  const body = document.getElementById('inventoryResultsBody')
+  if (!body) return
+  if (!Array.isArray(items) || items.length === 0) {
+    body.innerHTML = '<tr><td colspan="3">No results</td></tr>'
+    return
+  }
+  // Build a unique list of retailers
+  const byRetailer = new Map()
+  items.forEach((it) => {
+    const key = it.retailer_id || it.retailer_company || 'unknown'
+    if (!byRetailer.has(key)) {
+      byRetailer.set(key, {
+        id: it.retailer_id,
+        company: it.retailer_company,
+        area: it.retailer_area,
+        location: it.retailer_location,
+      })
+    }
+  })
+
+  // Render simple rows: Retailer | Area | Location
+  const rows = Array.from(byRetailer.values()).map((g) => {
+    const href = g.id ? `/company/${encodeURIComponent(g.id)}` : ''
+    return `
+      <tr class="clickable-row" data-href="${href}" role="link" tabindex="0">
+        <td>${g.company || '-'}</td>
+        <td>${g.area || '-'}</td>
+        <td>${g.location || '-'}</td>
+      </tr>
+    `
+  })
+  body.innerHTML = rows.join('')
+
+  // Make whole row clickable + keyboard accessible
+  body.querySelectorAll('tr.clickable-row').forEach((tr) => {
+    const href = tr.getAttribute('data-href')
+    if (!href) return
+    tr.addEventListener('click', () => { window.location.href = href })
+    tr.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        window.location.href = href
+      }
+    })
+  })
+}
+
+// -------------------------------
+// Company Page (profile + listings)
+// -------------------------------
+function initCompanyPage() {
+  try {
+    const retailerId = getRetailerIdFromPath()
+    if (!retailerId) return
+    loadCompanyProfile(retailerId)
+    loadCompanyInventory(retailerId)
+  } catch (e) {
+    console.error('Company page init failed:', e)
+  }
+}
+
+function getRetailerIdFromPath() {
+  const m = window.location.pathname.match(/^\/company\/(.+)$/)
+  return m && m[1] ? decodeURIComponent(m[1]) : null
+}
+
+async function loadCompanyProfile(retailerId) {
+  try {
+    const res = await fetch(`/api/company/${encodeURIComponent(retailerId)}`)
+    const data = await res.json()
+    if (!res.ok || data.error) return
+    const nameEl = document.getElementById('companyName')
+    const areaEl = document.getElementById('companyArea')
+    const locEl = document.getElementById('companyLocation')
+    if (nameEl) nameEl.textContent = data.retailer_company || 'Company'
+    if (areaEl) areaEl.textContent = data.retailer_area || '-'
+    if (locEl) locEl.textContent = data.retailer_location || '-'
+  } catch (e) {
+    console.error('Error loading company profile:', e)
+  }
+}
+
+async function loadCompanyInventory(retailerId) {
+  const tbody = document.getElementById('companyInventoryBody')
+  if (!tbody) return
+  try {
+    const url = new URL('/api/inventory', window.location.origin)
+    url.searchParams.set('retailer_id', retailerId)
+    url.searchParams.set('latest', '1')
+    const res = await fetch(url.toString())
+    const data = await res.json()
+    renderCompanyInventory(Array.isArray(data) ? data : [])
+    renderCompanyStats(Array.isArray(data) ? data : [])
+  } catch (e) {
+    console.error('Error loading company inventory:', e)
+  }
+}
+
+function renderCompanyInventory(items) {
+  const tbody = document.getElementById('companyInventoryBody')
+  if (!tbody) return
+  const fmtDate = (d) => {
+    if (!d) return '-'
+    try { const s = typeof d === 'string' ? d : (d.date || d); return (s || '').substring(0, 10) } catch (_) { return String(d) }
+  }
+  const fmtNum = (n, dec = 2) => {
+    const x = Number.parseFloat(n)
+    if (Number.isNaN(x)) return '-'
+    return x.toFixed(dec)
+  }
+  tbody.innerHTML = (items.length ? items.map(it => `
+    <tr>
+      <td>${it.rice_variety || '-'}</td>
+      <td>${fmtNum(it.stock_kg, 2)}</td>
+      <td>₱${fmtNum(it.price_per_kg, 2)}</td>
+      <td>${fmtDate(it.date_posted || it.created_at)}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="4">No listings</td></tr>')
+}
+
+function renderCompanyStats(items) {
+  const el = document.getElementById('companyStats')
+  if (!el) return
+  if (!items || !items.length) { el.innerHTML = ''; return }
+  const prices = items.map(i => Number.parseFloat(i.price_per_kg)).filter(n => !Number.isNaN(n))
+  const avg = prices.length ? (prices.reduce((a,b)=>a+b,0) / prices.length) : 0
+  const min = prices.length ? Math.min(...prices) : 0
+  const max = prices.length ? Math.max(...prices) : 0
+  const varieties = new Set(items.map(i => (i.rice_variety || '').trim() || 'Unknown'))
+  el.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat"><span class="label">Listings:</span><span class="value">${items.length}</span></div>
+      <div class="stat"><span class="label">Varieties:</span><span class="value">${varieties.size}</span></div>
+      <div class="stat"><span class="label">Avg Price:</span><span class="value">₱${avg.toFixed(2)}</span></div>
+      <div class="stat"><span class="label">Min/Max Price:</span><span class="value">₱${min.toFixed(2)} – ₱${max.toFixed(2)}</span></div>
+    </div>
+  `
+}
+
+// ---------------------------------------
+// Retailer Inventory (CRUD for dashboard)
+// ---------------------------------------
+async function loadRetailerInventory() {
+  const tbody = document.getElementById('retailerInventoryTableBody')
+  if (!tbody) return
+  try {
+    const res = await fetch('/api/retailer/inventory')
+    const data = await res.json()
+    renderRetailerInventoryTable(Array.isArray(data) ? data : [])
+  } catch (e) {
+    console.error('Error loading retailer inventory:', e)
+  }
+}
+
+function renderRetailerInventoryTable(items) {
+  const tbody = document.getElementById('retailerInventoryTableBody')
+  if (!tbody) return
+  const fmtDate = (d) => {
+    if (!d) return '-'
+    try { return (typeof d === 'string' ? d : (d.date || d)).substring(0, 10) } catch (_) { return String(d) }
+  }
+  const fmtNum = (n, dec = 2) => {
+    const x = Number.parseFloat(n)
+    if (Number.isNaN(x)) return '-'
+    return x.toFixed(dec)
+  }
+
+  if (!items || items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6">No inventory yet</td></tr>'
+    return
+  }
+
+  // Group by date (prefer date_posted, fallback to created_at)
+  const groups = {}
+  items.forEach((it) => {
+    const label = fmtDate(it.date_posted || it.created_at)
+    const key = label && label !== '-' ? label : 'No date'
+    if (!groups[key]) groups[key] = []
+    groups[key].push(it)
+  })
+
+  // Sort groups by date desc; "No date" last
+  const keys = Object.keys(groups).sort((a, b) => {
+    const da = a === 'No date' ? -Infinity : new Date(a).getTime()
+    const db = b === 'No date' ? -Infinity : new Date(b).getTime()
+    return db - da
+  })
+
+  let html = ''
+  keys.forEach((k) => {
+    const id = 'dg-' + k.replace(/[^0-9A-Za-z]+/g, '-')
+    const count = groups[k].length
+    const safeLabel = k
+    html += `
+    <tr class="ri-group-header" data-group="${id}">
+      <td colspan="6">
+        <button type="button" class="ri-group-toggle" data-target="${id}" data-label="${safeLabel}" data-count="${count}" aria-expanded="false" aria-controls="${id}">
+          ▸ ${safeLabel} <span class="ri-group-count">(${count} items)</span>
+        </button>
+      </td>
+    </tr>
+    `
+    groups[k].forEach((it) => {
+      html += `
+      <tr class="ri-group-item ${id}" data-id="${it.id}" style="display: none;">
+        <td class="ri-indent"></td>
+        <td>${it.rice_variety || '-'}</td>
+        <td>${fmtNum(it.stock_kg)}</td>
+        <td>₱${fmtNum(it.price_per_kg)}</td>
+        <td>${fmtDate(it.created_at)}</td>
+        <td>
+          <button type="button" class="btn-secondary ri-edit" data-id="${it.id}">Edit</button>
+          <button type="button" class="btn-danger ri-delete" data-id="${it.id}">Delete</button>
+        </td>
+      </tr>
+      `
+    })
+  })
+  tbody.innerHTML = html
+
+  // expand/collapse handlers
+  tbody.querySelectorAll('.ri-group-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-target')
+      const expanded = btn.getAttribute('aria-expanded') === 'true'
+      const rows = tbody.querySelectorAll(`.ri-group-item.${target}`)
+      rows.forEach(r => { r.style.display = expanded ? 'none' : '' })
+      btn.setAttribute('aria-expanded', expanded ? 'false' : 'true')
+      const label = btn.getAttribute('data-label') || ''
+      const count = btn.getAttribute('data-count') || ''
+      btn.innerHTML = `${expanded ? '▸' : '▾'} ${label} <span class="ri-group-count">(${count} items)</span>`
+    })
+  })
+
+  // attach edit/delete handlers
+  tbody.querySelectorAll('.ri-edit').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = e.currentTarget.getAttribute('data-id')
+      await editRetailerInventoryItem(id)
+    })
+  })
+  tbody.querySelectorAll('.ri-delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-id')
+      showInventoryDeleteModal(id)
+    })
+  })
+}
+
+// -------------------------------
+// Multi-row inventory UI helpers
+// -------------------------------
+function createRiRow() {
+  const row = document.createElement('div')
+  row.className = 'ri-row'
+  row.innerHTML = `
+    <div class="form-group">
+      <label>Variety</label>
+      <input type="text" class="ri-variety" placeholder="e.g., Jasmine">
+    </div>
+    <div class="form-group">
+      <label>Stock (kg)</label>
+      <input type="number" step="0.01" inputmode="decimal" class="ri-stock" required>
+    </div>
+    <div class="form-group">
+      <label>Price per kg (₱)</label>
+      <input type="number" step="0.01" inputmode="decimal" class="ri-price" required>
+    </div>
+    <button type="button" class="remove-row" aria-label="Remove row">Remove</button>
+  `
+  const btn = row.querySelector('.remove-row')
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const container = document.getElementById('ri_rows')
+      row.remove()
+      if (container && container.querySelectorAll('.ri-row').length === 0) {
+        container.appendChild(createRiRow())
+      }
+    })
+  }
+  return row
+}
+
+function initRetailerInventoryMultiRow() {
+  const container = document.getElementById('ri_rows')
+  const addBtn = document.getElementById('ri_add_row')
+  if (!container || !addBtn) return
+
+  // Wire existing row(s)
+  container.querySelectorAll('.ri-row .remove-row').forEach((btn) => {
+    if (!btn.dataset.bound) {
+      btn.addEventListener('click', (e) => {
+        const row = e.currentTarget.closest('.ri-row')
+        if (row) row.remove()
+        if (container.querySelectorAll('.ri-row').length === 0) {
+          container.appendChild(createRiRow())
+        }
+      })
+      btn.dataset.bound = '1'
+    }
+  })
+
+  // Add new rows
+  addBtn.addEventListener('click', () => {
+    container.appendChild(createRiRow())
+  })
+}
+async function handleRetailerInventorySubmit(e) {
+  e.preventDefault()
+  const dateEl = document.getElementById('ri_date')
+  const dateVal = dateEl && dateEl.value ? dateEl.value : null
+
+  const rowsContainer = document.getElementById('ri_rows')
+  let entries = []
+  if (rowsContainer) {
+    const rows = rowsContainer.querySelectorAll('.ri-row')
+    rows.forEach((row) => {
+      const varietyEl = row.querySelector('.ri-variety')
+      const stockEl = row.querySelector('.ri-stock')
+      const priceEl = row.querySelector('.ri-price')
+      const variety = varietyEl && varietyEl.value ? varietyEl.value.trim() : ''
+      const stock = stockEl ? stockEl.value : ''
+      const price = priceEl ? priceEl.value : ''
+      if (variety || stock || price) {
+        if (!stock || !price) {
+          entries = null
+        } else {
+          const p = { rice_variety: variety || null, stock_kg: stock, price_per_kg: price }
+          if (dateVal) p.date_posted = dateVal
+          entries.push(p)
+        }
+      }
+    })
+    if (entries === null) {
+      alert('Please complete stock and price for all rows or remove incomplete rows.')
+      return
+    }
+    if (!entries || entries.length === 0) {
+      alert('Please add at least one variety row.')
+      return
+    }
+  } else {
+    // Legacy single-row fallback
+    const variety = document.getElementById('ri_variety')
+    const stock = document.getElementById('ri_stock')
+    const price = document.getElementById('ri_price')
+    const p = {
+      rice_variety: variety && variety.value ? variety.value : null,
+      stock_kg: stock ? stock.value : null,
+      price_per_kg: price ? price.value : null,
+    }
+    if (dateVal) p.date_posted = dateVal
+    entries = [p]
+  }
+
+  try {
+    const results = await Promise.allSettled(
+      entries.map((p) =>
+        fetch('/api/retailer/inventory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(p),
+        }).then(async (res) => ({ ok: res.ok, body: await res.json() }))
+      )
+    )
+    const errors = results.filter((r) => r.status === 'fulfilled' && !r.value.ok)
+    if (errors.length) {
+      const msg = errors
+        .map((e) => (e.value && e.value.body && (e.value.body.error || JSON.stringify(e.value.body))) || 'Unknown error')
+        .join('\n')
+      alert('Some entries failed to save:\n' + msg)
+    }
+
+    // Reset rows to a single empty row, keep date for convenience
+    if (rowsContainer) {
+      rowsContainer.innerHTML = ''
+      rowsContainer.appendChild(createRiRow())
+    } else {
+      const v = document.getElementById('ri_variety'); if (v) v.value = ''
+      const s = document.getElementById('ri_stock'); if (s) s.value = ''
+      const p = document.getElementById('ri_price'); if (p) p.value = ''
+    }
+
+    loadRetailerInventory()
+  } catch (e) {
+    console.error('Create inventory error:', e)
+    alert('Error creating inventory')
+  }
+}
+
+async function editRetailerInventoryItem(id) {
+  try {
+    const res = await fetch(`/api/retailer/inventory/${id}`)
+    const item = await res.json()
+    if (!res.ok || (item && item.error)) {
+      alert((item && item.error) || 'Item not found')
+      return
+    }
+    const curDate = item.date_posted ? String(item.date_posted).substring(0, 10) : ''
+    const newDate = prompt('Date (YYYY-MM-DD) - leave blank to keep', curDate)
+    const newVariety = prompt('Variety - leave blank to keep', item.rice_variety || '')
+    const newStock = prompt('Stock (kg) - leave blank to keep', item.stock_kg != null ? item.stock_kg : '')
+    const newPrice = prompt('Price per kg - leave blank to keep', item.price_per_kg != null ? item.price_per_kg : '')
+    const payload = {}
+    if (newDate !== null && newDate !== curDate) payload.date_posted = newDate || null
+    if (newVariety !== null && newVariety !== (item.rice_variety || '')) payload.rice_variety = newVariety
+    if (newStock !== null && newStock !== String(item.stock_kg ?? '')) { if (newStock !== '') payload.stock_kg = newStock }
+    if (newPrice !== null && newPrice !== String(item.price_per_kg ?? '')) { if (newPrice !== '') payload.price_per_kg = newPrice }
+    if (Object.keys(payload).length === 0) return
+    const up = await fetch(`/api/retailer/inventory/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const udata = await up.json()
+    if (!up.ok) {
+      alert((udata && udata.error) || 'Update failed')
+      return
+    }
+    loadRetailerInventory()
+  } catch (e) {
+    console.error('Edit inventory error:', e)
+    alert('Error editing item')
   }
 }
 
@@ -552,14 +1057,24 @@ async function handlePrediction(e) {
 }
 
 let pendingDeleteId = null;
+let pendingInventoryDeleteId = null;
 
 function showDeleteModal(id) {
+  pendingInventoryDeleteId = null;
   pendingDeleteId = id;
+  const overlay = document.getElementById('deleteModalOverlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function showInventoryDeleteModal(id) {
+  pendingDeleteId = null;
+  pendingInventoryDeleteId = id;
   const overlay = document.getElementById('deleteModalOverlay');
   if (overlay) overlay.style.display = 'flex';
 }
 function hideDeleteModal() {
   pendingDeleteId = null;
+  pendingInventoryDeleteId = null;
   const overlay = document.getElementById('deleteModalOverlay');
   if (overlay) overlay.style.display = 'none';
 }
