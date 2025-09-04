@@ -165,12 +165,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (confirmBtn) confirmBtn.onclick = async function() {
     try {
       if (pendingDeleteId) {
-        await fetch(`/api/sales/${pendingDeleteId}`, { method: "DELETE" });
+        await safeFetchJson(`/api/sales/${pendingDeleteId}`, { method: "DELETE" });
         location.reload();
         return;
       }
       if (pendingInventoryDeleteId) {
-        await fetch(`/api/retailer/inventory/${pendingInventoryDeleteId}`, { method: "DELETE" });
+        await safeFetchJson(`/api/retailer/inventory/${pendingInventoryDeleteId}`, { method: "DELETE" });
         pendingInventoryDeleteId = null;
         if (typeof loadRetailerInventory === 'function') {
           loadRetailerInventory();
@@ -186,30 +186,66 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Removed global spinner utilities
 
+// Safe JSON parsing helpers to harden fetch handlers against non-JSON responses
+async function safeParseJson(response) {
+  try {
+    const ct = (response.headers && response.headers.get && response.headers.get('content-type')) || ''
+    if (ct && ct.includes('application/json')) {
+      return await response.json()
+    }
+    const text = await response.text()
+    try { return JSON.parse(text) } catch (_) { return { message: text } }
+  } catch (e) {
+    return { error: 'Failed to parse response body' }
+  }
+}
+
+async function safeFetchJson(input, init) {
+  const res = await fetch(input, init)
+  const data = await safeParseJson(res)
+  if (!res.ok) {
+    if (data && typeof data === 'object') {
+      if (!('error' in data)) data.error = `HTTP ${res.status}`
+      data.status = res.status
+    }
+    return data
+  }
+  return data
+}
+
 async function loadDashboardData(params) {
   try {
     const qs = params && params.toString ? `?${params.toString()}` : ''
     const urlAnalytics = new URL(`/api/analytics${qs}`, window.location.origin)
     const periodSel = document.getElementById('dashboardPeriod')
     if (periodSel && periodSel.value) urlAnalytics.searchParams.set('period', periodSel.value)
-    const [salesResponse, analyticsResponse] = await Promise.all([
-      fetch(`/api/sales${qs}`),
-      fetch(urlAnalytics.toString()),
+    const [salesData, analyticsData] = await Promise.all([
+      safeFetchJson(`/api/sales${qs}`),
+      safeFetchJson(urlAnalytics.toString()),
     ])
-    const salesData = await salesResponse.json()
-    const analyticsData = await analyticsResponse.json()
     const totalEntriesEl = document.getElementById("totalEntries")
     const totalSoldEl = document.getElementById("totalSold")
     const totalRevenueEl = document.getElementById("totalRevenue")
     const efficiencyScoreEl = document.getElementById("efficiencyScore")
-    if (totalEntriesEl) totalEntriesEl.textContent = analyticsData.total_entries
-    if (totalSoldEl) totalSoldEl.textContent = `${analyticsData.total_sold} kg`
-    if (totalRevenueEl) totalRevenueEl.textContent = `₱${analyticsData.total_revenue}`
-    if (efficiencyScoreEl) efficiencyScoreEl.textContent = analyticsData.efficiency_score
+    if (analyticsData && !analyticsData.error) {
+      if (totalEntriesEl) totalEntriesEl.textContent = analyticsData.total_entries
+      if (totalSoldEl) totalSoldEl.textContent = `${analyticsData.total_sold} kg`
+      if (totalRevenueEl) totalRevenueEl.textContent = `₱${analyticsData.total_revenue}`
+      if (efficiencyScoreEl) efficiencyScoreEl.textContent = analyticsData.efficiency_score
+    } else {
+      if (totalEntriesEl) totalEntriesEl.textContent = '-'
+      if (totalSoldEl) totalSoldEl.textContent = '-'
+      if (totalRevenueEl) totalRevenueEl.textContent = '-'
+      if (efficiencyScoreEl) efficiencyScoreEl.textContent = '-'
+    }
     updateRecentDataTable(Array.isArray(salesData) ? salesData.slice(-5) : [])
-    if (analyticsData && Array.isArray(analyticsData.chart_data)) {
+    if (analyticsData && !analyticsData.error && Array.isArray(analyticsData.chart_data)) {
       createSalesChart(analyticsData.chart_data)
       createWasteChart(analyticsData.chart_data)
+    } else {
+      // Clear charts to avoid stale visuals
+      createSalesChart([])
+      createWasteChart([])
     }
   } catch (error) {
     console.error("Error loading dashboard data:", error)
@@ -225,8 +261,7 @@ async function loadAnalyticsData() {
     if (y && y.value) url.searchParams.append('year', y.value)
     if (m && m.value) url.searchParams.append('month', m.value)
     if (w && w.value) url.searchParams.append('week', w.value)
-    const response = await fetch(url.toString())
-    const data = await response.json()
+    const data = await safeFetchJson(url.toString())
     if (data && data.chart_data) {
       createAdvancedCharts(data.chart_data)
       generateInsights(data)
@@ -235,13 +270,10 @@ async function loadAnalyticsData() {
     if (y && y.value) params.append('year', y.value)
     if (m && m.value) params.append('month', m.value)
     if (w && w.value) params.append('week', w.value)
-    const [trendsRes, corrRes, marketRes] = await Promise.all([
-      fetch('/api/trends' + (params.toString() ? '?' + params.toString() : '')),
-      fetch('/api/correlations' + (params.toString() ? '?' + params.toString() : '')),
-      fetch('/api/market-comparison' + (params.toString() ? '?' + params.toString() : '')),
-    ])
     const [trends, correlations, marketComparison] = await Promise.all([
-      trendsRes.json(), corrRes.json(), marketRes.json()
+      safeFetchJson('/api/trends' + (params.toString() ? '?' + params.toString() : '')),
+      safeFetchJson('/api/correlations' + (params.toString() ? '?' + params.toString() : '')),
+      safeFetchJson('/api/market-comparison' + (params.toString() ? '?' + params.toString() : '')),
     ])
     renderCorrelationSection(correlations)
     renderMarketComparisonSection(marketComparison)
@@ -270,9 +302,8 @@ async function loadConsumerInventory() {
     if (variety && variety.value) url.searchParams.set('variety', variety.value)
     if (area && area.value) url.searchParams.set('area', area.value)
     if (minP && minP.value) url.searchParams.set('min_price', minP.value)
-    if (maxP && maxP.value) url.searchParams.set('max_price', maxP.value)
-    const res = await fetch(url.toString())
-    const data = await res.json()
+    if (minP && maxP && maxP.value) url.searchParams.set('max_price', maxP.value)
+    const data = await safeFetchJson(url.toString())
     if (Array.isArray(data)) {
       renderConsumerInventoryTable(data)
     } else {
@@ -352,9 +383,8 @@ function getRetailerIdFromPath() {
 
 async function loadCompanyProfile(retailerId) {
   try {
-    const res = await fetch(`/api/company/${encodeURIComponent(retailerId)}`)
-    const data = await res.json()
-    if (!res.ok || data.error) return
+    const data = await safeFetchJson(`/api/company/${encodeURIComponent(retailerId)}`)
+    if (!data || data.error) return
     const nameEl = document.getElementById('companyName')
     const areaEl = document.getElementById('companyArea')
     const locEl = document.getElementById('companyLocation')
@@ -373,8 +403,7 @@ async function loadCompanyInventory(retailerId) {
     const url = new URL('/api/inventory', window.location.origin)
     url.searchParams.set('retailer_id', retailerId)
     url.searchParams.set('latest', '1')
-    const res = await fetch(url.toString())
-    const data = await res.json()
+    const data = await safeFetchJson(url.toString())
     renderCompanyInventory(Array.isArray(data) ? data : [])
     renderCompanyStats(Array.isArray(data) ? data : [])
   } catch (e) {
@@ -430,8 +459,7 @@ async function loadRetailerInventory() {
   const tbody = document.getElementById('retailerInventoryTableBody')
   if (!tbody) return
   try {
-    const res = await fetch('/api/retailer/inventory')
-    const data = await res.json()
+    const data = await safeFetchJson('/api/retailer/inventory')
     renderRetailerInventoryTable(Array.isArray(data) ? data : [])
   } catch (e) {
     console.error('Error loading retailer inventory:', e)
@@ -642,11 +670,11 @@ async function handleRetailerInventorySubmit(e) {
   try {
     const results = await Promise.allSettled(
       entries.map((p) =>
-        fetch('/api/retailer/inventory', {
+        safeFetchJson('/api/retailer/inventory', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(p),
-        }).then(async (res) => ({ ok: res.ok, body: await res.json() }))
+        }).then((body) => ({ ok: !(body && body.error), body }))
       )
     )
     const errors = results.filter((r) => r.status === 'fulfilled' && !r.value.ok)
@@ -676,10 +704,9 @@ async function handleRetailerInventorySubmit(e) {
 
 async function editRetailerInventoryItem(id) {
   try {
-    const res = await fetch(`/api/retailer/inventory/${id}`)
-    const item = await res.json()
-    if (!res.ok || (item && item.error)) {
-      alert((item && item.error) || 'Item not found')
+    const item = await safeFetchJson(`/api/retailer/inventory/${id}`)
+    if (item && item.error) {
+      alert(item.error || 'Item not found')
       return
     }
     const curDate = item.date_posted ? String(item.date_posted).substring(0, 10) : ''
@@ -693,14 +720,13 @@ async function editRetailerInventoryItem(id) {
     if (newStock !== null && newStock !== String(item.stock_kg ?? '')) { if (newStock !== '') payload.stock_kg = newStock }
     if (newPrice !== null && newPrice !== String(item.price_per_kg ?? '')) { if (newPrice !== '') payload.price_per_kg = newPrice }
     if (Object.keys(payload).length === 0) return
-    const up = await fetch(`/api/retailer/inventory/${id}`, {
+    const udata = await safeFetchJson(`/api/retailer/inventory/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    const udata = await up.json()
-    if (!up.ok) {
-      alert((udata && udata.error) || 'Update failed')
+    if (udata && udata.error) {
+      alert(udata.error || 'Update failed')
       return
     }
     loadRetailerInventory()
@@ -937,8 +963,12 @@ function renderTrendsSection(trends) {
 
 function renderCorrelationSection(correlations) {
   const grid = document.getElementById('correlationGrid')
-  if (!grid || !correlations || correlations.error) return
+  if (!grid) return
+  // Always clear previous content to avoid stale UI on errors
   grid.innerHTML = ''
+  if (!correlations || correlations.error) {
+    return
+  }
   const interpretations = correlations.interpretations || {}
   Object.keys(interpretations).forEach((key) => {
     const value = correlations[key] || 0
@@ -958,8 +988,12 @@ function renderCorrelationSection(correlations) {
 
 function renderMarketComparisonSection(comparison) {
   const grid = document.getElementById('marketComparisonGrid')
-  if (!grid || !comparison || comparison.error) return
+  if (!grid) return
+  // Always clear previous content
   grid.innerHTML = ''
+  if (!comparison || comparison.error) {
+    return
+  }
   Object.entries(comparison).forEach(([market, data]) => {
     const card = document.createElement('div')
     card.className = 'market-card'
@@ -1025,15 +1059,16 @@ async function handlePrediction(e) {
   }
 
   try {
-    const response = await fetch("/api/predict", {
+    const result = await safeFetchJson("/api/predict", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     })
-
-    const result = await response.json()
+    if (!result || result.error) {
+      throw new Error((result && result.error) || 'Prediction failed')
+    }
 
     const predictedDemandEl = document.getElementById("predictedDemand")
     const formulaUsedEl = document.getElementById("formulaUsed")

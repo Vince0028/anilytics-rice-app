@@ -15,6 +15,7 @@ import decimal
 import datetime as dt
 import traceback
 import time
+from werkzeug.exceptions import HTTPException
 
 load_dotenv()
 
@@ -28,6 +29,103 @@ if not _sk or _sk.strip() == '':
     _sk = secrets.token_urlsafe(64)
     print('[WARN] SECRET_FLASK_KEY not set in .env. Using a temporary in-memory key. Set SECRET_FLASK_KEY in .env to persist sessions.')
 app.secret_key = _sk
+
+# ---- Global API JSON normalization and error handling ----
+def wants_json_response() -> bool:
+    """Detect if the current request expects a JSON response.
+    We treat any /api/* path or requests explicitly accepting JSON as API calls.
+    """
+    try:
+        if request.path.startswith('/api'):
+            return True
+        accept = (request.headers.get('Accept') or '')
+        return 'application/json' in accept
+    except Exception:
+        return False
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(e: HTTPException):
+    """Return JSON for HTTP errors on API requests to avoid HTML responses breaking fetch()."""
+    if wants_json_response():
+        payload = {
+            'error': e.name,
+            'message': e.description,
+            'code': e.code,
+        }
+        return jsonify(payload), e.code
+    return e
+
+@app.errorhandler(Exception)
+def handle_unexpected_exception(e: Exception):
+    """Catch-all to ensure API requests get JSON on unexpected errors."""
+    try:
+        print('[ERROR] Unhandled exception:', e)
+        print(traceback.format_exc())
+    except Exception:
+        pass
+    if wants_json_response():
+        return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
+    # Non-API requests fall back to a generic 500 to let Flask render a default page
+    return ("Internal Server Error", 500)
+
+@app.after_request
+def normalize_api_json_response(response):
+    """Ensure all API responses are JSON to prevent frontend JSON.parse errors.
+    - Converts redirects to JSON envelopes with the target location
+    - Converts empty bodies to {}
+    - If body is JSON but header is wrong, fixes Content-Type
+    - Wraps plain text/HTML into a JSON object {message|error}
+    """
+    try:
+        if wants_json_response():
+            # Enforce no-cache on API responses to avoid stale data after account changes
+            try:
+                response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+                response.headers['Pragma'] = 'no-cache'
+                response.headers['Expires'] = '0'
+            except Exception:
+                pass
+            # Normalize redirects into JSON payload to avoid following HTML redirects in fetch()
+            if response.status_code in (301, 302, 303, 307, 308):
+                loc = response.headers.get('Location')
+                payload = {'redirect': loc} if loc else {'message': 'Redirect'}
+                jr = jsonify(payload)
+                jr.status_code = response.status_code
+                return jr
+
+            # Keep cache/empty/not modified responses intact
+            if response.status_code in (204, 304):
+                return response
+
+            # Respect already JSON responses
+            content_type = (response.mimetype or response.headers.get('Content-Type', '') or '').lower()
+            if 'application/json' in content_type:
+                return response
+
+            body = response.get_data(as_text=True)
+
+            # If body is JSON but header is wrong, re-wrap with correct mimetype
+            try:
+                parsed = json.loads(body) if body else {}
+                jr = app.response_class(
+                    response=json.dumps(parsed),
+                    status=response.status_code,
+                    mimetype='application/json'
+                )
+                return jr
+            except Exception:
+                pass
+
+            # Coerce text/HTML to JSON envelope
+            text = (body or '').strip()
+            payload = {'error': text} if response.status_code >= 400 else {'message': text}
+            jr = jsonify(payload)
+            jr.status_code = response.status_code
+            return jr
+        return response
+    except Exception:
+        # Never break the original response if normalization fails
+        return response
 
 # Supabase configuration
 SUPABASE_URL = os.getenv('SUPABASE_URL')
@@ -1098,8 +1196,14 @@ def get_market_comparison():
             sales_data = filter_data_by_time(sales_data, year, month, week, strict=strict)
         
         comparison = calculate_market_comparison(sales_data)
-        # Ensure JSON serializable nested values
-        serial = {k: {ik: to_serializable(iv) for ik, iv in v.items()} for k, v in comparison.items()}
+        # If function returned an error-only dict, pass it through directly
+        if isinstance(comparison, dict) and 'error' in comparison and len(comparison) == 1:
+            return jsonify(comparison)
+        # Ensure JSON serializable nested values while handling non-dict values safely
+        serial = {
+            k: ({ik: to_serializable(iv) for ik, iv in v.items()} if isinstance(v, dict) else to_serializable(v))
+            for k, v in comparison.items()
+        }
         return jsonify(serial)
     except Exception as e:
         return jsonify({"error": str(e)}), 400

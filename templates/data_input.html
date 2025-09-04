@@ -341,8 +341,8 @@
         }
 
         async function fetchAndApplyDefaults() {
-            const auto = document.getElementById('autofillToggle');
-            if (auto && !auto.checked) return; // respect user choice
+          const auto = document.getElementById('autofillToggle');
+          if (auto && !auto.checked) return; // respect user choice
 
             const year = document.getElementById('year').value;
             if (!year) return;
@@ -352,14 +352,13 @@
             if (month) params.append('month', month);
 
             try {
-                const res = await fetch(`/api/defaults?${params.toString()}`);
-                const data = await res.json();
-                if (!data.error) {
+                const data = await safeFetchJson(`/api/defaults?${params.toString()}`);
+                if (data && !data.error) {
                     setMarketFields(data);
                 }
-            } catch (e) {
-                // non-fatal
-            }
+          } catch (e) {
+              // non-fatal
+          }
         }
 
         function resetForm() {

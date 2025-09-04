@@ -267,20 +267,18 @@
         let marketEfficiencyChartInstance = null;
         let forecastChartInstance = null;
 
-        // Fetch helpers with timeout to avoid indefinite hanging
-        function fetchWithTimeout(resource, options = {}, timeout = 15000) {
+        // JSON fetch helper delegating to global safeFetchJson with timeout support
+        async function getJson(url, timeout = 15000) {
+            // Delegate to global safeFetchJson (loaded from static/script.js) while preserving timeout behavior
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
-            return fetch(resource, { ...options, signal: controller.signal })
-                .finally(() => clearTimeout(id));
-        }
-        async function getJson(url, timeout = 15000) {
             try {
-                const res = await fetchWithTimeout(url, {}, timeout);
-                return await res.json();
+                return await safeFetchJson(url, { signal: controller.signal });
             } catch (e) {
                 console.error('Fetch failed:', url, e);
                 return { error: e && e.message ? e.message : 'Fetch error' };
+            } finally {
+                clearTimeout(id);
             }
         }
         function showErrorBanner(message) {
@@ -396,8 +394,13 @@
                 ]);
 
                 // Error banner handling
+                const benignMessages = new Set([
+                    'Insufficient data for trend analysis',
+                    'Insufficient data for correlation analysis',
+                    'No data available for market comparison'
+                ]);
                 const errors = [quality, trends, correlations, marketComparison, analyticsSummary, rawSales]
-                    .filter(x => x && x.error)
+                    .filter(x => x && x.error && !benignMessages.has(String(x.error)))
                     .map(x => x.error);
                 if (errors.length) {
                     showErrorBanner(`Some analytics failed to load: ${errors.join('; ')}`);
@@ -679,15 +682,11 @@
             const weeks = document.getElementById('forecastWeeks').value;
             
             try {
-                const response = await fetch('/api/forecast', {
+                const forecast = await safeFetchJson('/api/forecast', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ weeks: parseInt(weeks) })
                 });
-                
-                const forecast = await response.json();
                 
                 if (forecast.error) {
                     alert('Error generating forecast: ' + forecast.error);
@@ -762,107 +761,7 @@
             }
         }
 
-        // Improved fallback logic for main analytics charts
-        document.addEventListener('DOMContentLoaded', function() {
-            // Helper: moving average
-            function movingAverage(arr, window) {
-                if (arr.length < window) return arr;
-                let out = [];
-                for (let i = 0; i <= arr.length - window; i++) {
-                    out.push(arr.slice(i,i+window).reduce((a,b)=>a+b,0)/window);
-                }
-                return out;
-            }
-            // Helper: correlation coefficient
-            function correlation(x, y) {
-                const n = x.length;
-                if (n !== y.length || n < 2) return 0;
-                const sumX = x.reduce((a,b)=>a+b,0);
-                const sumY = y.reduce((a,b)=>a+b,0);
-                const sumXY = x.reduce((a,b,i)=>a+b*y[i],0);
-                const sumX2 = x.reduce((a,b)=>a+b*b,0);
-                const sumY2 = y.reduce((a,b)=>a+b*b,0);
-                const num = n*sumXY - sumX*sumY;
-                const den = Math.sqrt((n*sumX2-sumX*sumX)*(n*sumY2-sumY*sumY));
-                return den ? num/den : 0;
-            }
-            // Assume 5 weeks of data for fallback
-            const weekLabels = ['Week 1','Week 2','Week 3','Week 4','Week 5'];
-            // 1. Weekly Sales Patterns fallback (per week, not days)
-            var weeklyPatternsCtx = document.getElementById('weeklyPatternsChart');
-            if (weeklyPatternsCtx && window.Chart && (!window.trends || !window.trends.weekly_patterns || Object.keys(window.trends.weekly_patterns).length === 0)) {
-                const sales = [10, 12, 8, 15, 9];
-                weeklyPatternsChartInstance = new Chart(weeklyPatternsCtx, {
-                    type: 'bar',
-                    data: { labels: weekLabels, datasets: [{ label: 'Example Sales (kg)', data: sales, backgroundColor: '#4a7c59' }] },
-                    options: { responsive: true, plugins: { title: { display: true, text: 'Weekly Sales Patterns (Fallback)' } } }
-                });
-            }
-            // 2. Market Efficiency Comparison fallback (single market)
-            var marketEfficiencyCtx = document.getElementById('marketEfficiencyChart');
-            if (marketEfficiencyCtx && window.Chart && (!window.marketComparison || Object.keys(window.marketComparison).length === 0)) {
-                const markets = ['Your Market'];
-                const waste = [12.5];
-                marketEfficiencyChartInstance = new Chart(marketEfficiencyCtx, {
-                    type: 'bar',
-                    data: { labels: markets, datasets: [{ label: 'Avg Waste %', data: waste, backgroundColor: '#ffc107' }] },
-                    options: { responsive: true, plugins: { title: { display: true, text: 'Market Efficiency Comparison (Fallback)' } }, scales: { y: { beginAtZero: true, max: 100 } } }
-                });
-            }
-            // 3. Price vs. Demand Correlation fallback (5 points)
-            var correlationCtx = document.getElementById('correlationChart');
-            if (correlationCtx && window.Chart && (!window.analyticsSummary || !window.analyticsSummary.chart_data || window.analyticsSummary.chart_data.length === 0)) {
-                // Example data for 5 weeks
-                const prices = [40, 42, 44, 46, 48];
-                const demand = [120, 115, 110, 100, 95];
-                const pts = prices.map((p,i)=>({x:p,y:demand[i]}));
-                // Trendline
-                const n = prices.length;
-                const sumX = prices.reduce((a,b)=>a+b,0);
-                const sumY = demand.reduce((a,b)=>a+b,0);
-                const sumXY = prices.reduce((a,b,i)=>a+b*demand[i],0);
-                const sumX2 = prices.reduce((a,b)=>a+b*b,0);
-                const slope = (n*sumXY - sumX*sumY)/(n*sumX2 - sumX*sumX);
-                const intercept = (sumY - slope*sumX)/n;
-                const minX = Math.min(...prices);
-                const maxX = Math.max(...prices);
-                const line = [ { x: minX, y: slope*minX + intercept }, { x: maxX, y: slope*maxX + intercept } ];
-                const r = correlation(prices, demand);
-                correlationChartInstance = new Chart(correlationCtx, {
-                    type: 'scatter',
-                    data: {
-                        datasets: [
-                            { label: 'Price vs Demand', data: pts, backgroundColor: 'rgba(74,124,89,0.6)', borderColor: '#2c5530', pointRadius: 5, pointHoverRadius: 7 },
-                            { label: `Trendline (r=${r.toFixed(2)})`, type: 'line', data: line, borderColor: '#8884d8', borderWidth: 2, fill: false, pointRadius: 0, tension: 0 }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: { title: { display: true, text: 'Price vs. Demand Correlation (Fallback)' }, legend: { position: 'top' } },
-                        scales: { x: { title: { display: true, text: 'Price (₱)' } }, y: { title: { display: true, text: 'Sold (kg)' }, beginAtZero: true } }
-                    }
-                });
-            }
-            // 4. Moving Averages fallback (5 weeks)
-            var movingAvgCtx = document.getElementById('movingAverageChart');
-            if (movingAvgCtx && window.Chart && (!window.trends || !window.trends.sales_moving_avg || window.trends.sales_moving_avg.length === 0)) {
-                const sales = [10, 12, 8, 15, 9];
-                const waste = [2, 3, 1, 4, 2];
-                const salesMA = movingAverage(sales, 3);
-                const wasteMA = movingAverage(waste, 3);
-                movingAverageChartInstance = new Chart(movingAvgCtx, {
-                    type: 'line',
-                    data: {
-                        labels: Array.from({length: salesMA.length}, (_, i) => `Week ${i + 1}`),
-                        datasets: [
-                            { label: 'Sales Moving Average', data: salesMA, borderColor: '#4a7c59', backgroundColor: 'rgba(74, 124, 89, 0.1)', tension: 0.4 },
-                            { label: 'Waste Moving Average', data: wasteMA, borderColor: '#dc3545', backgroundColor: 'rgba(220, 53, 69, 0.1)', tension: 0.4 }
-                        ]
-                    },
-                    options: { responsive: true, plugins: { title: { display: true, text: '3-Week Moving Averages (Fallback)' } } }
-                });
-            }
-        });
+        // Remove fallback sample charts to avoid showing fake/stale-looking data
 
         // Strictly real-data-only Research Insights & Recommendations
         function generateResearchInsights(data) {

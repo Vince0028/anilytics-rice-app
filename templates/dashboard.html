@@ -286,8 +286,7 @@
 
         async function loadAvailableYears() {
             try {
-                const response = await fetch('/api/available-years');
-                const data = await response.json();
+                const data = await safeFetchJson('/api/available-years');
                 
                 if (data.years && data.years.length > 0) {
                     const yearSelect = document.getElementById('dashboardYear');
