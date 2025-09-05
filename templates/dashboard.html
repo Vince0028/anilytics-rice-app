@@ -120,7 +120,7 @@
 
             <div class="charts-grid">
                 <div class="chart-card">
-                    <h3>Weekly Sales Overview</h3>
+                    <h3 id="salesChartTitle">Sales Overview</h3>
                     <canvas id="salesChart"></canvas>
                 </div>
                 <div class="chart-card">
@@ -130,12 +130,12 @@
             </div>
 
             <div class="recent-data">
-                <h3>Recent Sales Data</h3>
-                <div class="data-table-container">
+                <h3 id="recentDataTitle">Recent Sales Data</h3>
+                <div class="data-table-container" style="max-height: 320px; overflow: auto;">
                     <table class="data-table" id="recentDataTable">
                         <thead>
                             <tr>
-                                <th>Week</th>
+                                <th id="periodHeader">Period</th>
                                 <th>Sold (kg)</th>
                                 <th>Unsold (kg)</th>
                                 <th>Price/kg</th>

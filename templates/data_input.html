@@ -168,7 +168,7 @@
 
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" onclick="resetForm()">Reset Form</button>
-                    <button type="submit" class="btn-primary">Save Data</button>
+                    <button id="saveBtn" type="submit" class="btn-primary">Save Data</button>
                 </div>
             </form>
         </div>
@@ -185,6 +185,9 @@
             fetchAndApplyDefaults();
             // Save on submit to persist latest values
             document.getElementById('dataForm').addEventListener('submit', saveMarketDefaultsToLocal);
+            // Lock completed months for the default year
+            const y = document.getElementById('year').value;
+            if (y) { fetchAndLockCompletedMonths(y); }
         });
 
         function updateTimePeriods() {
@@ -199,6 +202,7 @@
             const monthSelect = document.getElementById('month');
             const weekSelect = document.getElementById('week');
             const daySelect = document.getElementById('day');
+            const saveBtn = document.getElementById('saveBtn');
 
             // Reset dependent dropdowns when year changes
             if (year && !month) {
@@ -207,17 +211,31 @@
                 daySelect.disabled = true;
                 weekSelect.innerHTML = '<option value="">All Weeks (Monthly Data)</option>';
                 daySelect.innerHTML = '<option value="">All Days (Weekly Data)</option>';
+                // Refresh month locks for the selected year
+                fetchAndLockCompletedMonths(year);
+                // If the whole year is completed, prevent saving a year-level entry
+                if (isYearCompleted(year)) {
+                    dataTypeInfo.innerHTML = 'This year is already <strong>completed</strong> (either a yearly entry exists or all months are complete).';
+                    if (saveBtn) saveBtn.disabled = true;
+                } else {
+                    if (saveBtn) saveBtn.disabled = false;
+                }
             }
 
             // Update week options when month is selected
             if (year && month && month !== '') {
                 // Rebuild week options but preserve current selection if any
                 updateWeekOptions(year, month, week);
-                weekSelect.disabled = false;
+                // If month is locked as complete, keep weeks disabled
+                const locked = isMonthCompleted(year, month);
+                weekSelect.disabled = !!locked;
                 daySelect.disabled = true;
                 daySelect.innerHTML = '<option value="">All Days (Weekly Data)</option>';
                 // When month changes, refresh defaults
                 fetchAndApplyDefaults();
+                if (locked) {
+                    dataTypeInfo.innerHTML = 'This month is already <strong>completed</strong> by a monthly entry or all weeks filled. Weekly/day inputs are disabled.';
+                }
             }
 
             // Update day options when week is selected
@@ -232,26 +250,97 @@
                 dataLevelSpan.textContent = 'Daily Data';
                 dataTypeInfo.innerHTML = 'You are entering data for a <strong>specific day</strong>. This provides the most detailed tracking.';
                 datePreviewSpan.textContent = `${day} ${getMonthName(parseInt(month))} ${year}`;
+                if (saveBtn) saveBtn.disabled = false;
             } else if (year && month && month !== '' && week && week !== '') {
                 dataLevelSpan.textContent = 'Weekly Data';
                 dataTypeInfo.innerHTML = 'You are entering data for a <strong>specific week</strong>. This provides weekly pattern analysis.';
                 const startDay = (parseInt(week) - 1) * 7 + 1;
                 const endDay = Math.min(parseInt(week) * 7, new Date(parseInt(year), parseInt(month), 0).getDate());
                 datePreviewSpan.textContent = `Week ${week} (${startDay}-${endDay}) of ${getMonthName(parseInt(month))} ${year}`;
+                if (saveBtn) saveBtn.disabled = false;
             } else if (year && month && month !== '') {
                 dataLevelSpan.textContent = 'Monthly Data';
                 dataTypeInfo.innerHTML = 'You are entering data for a <strong>specific month</strong>. This provides monthly trend analysis.';
                 datePreviewSpan.textContent = `${getMonthName(parseInt(month))} ${year}`;
+                if (saveBtn) saveBtn.disabled = false;
             } else if (year) {
                 dataLevelSpan.textContent = 'Yearly Data';
                 dataTypeInfo.innerHTML = 'You are entering data for the <strong>entire year</strong>. This provides annual overview and comparisons.';
                 datePreviewSpan.textContent = `Year ${year}`;
                 // For year-only, still try to auto-fill from latest year entry
                 fetchAndApplyDefaults();
+                if (saveBtn) saveBtn.disabled = isYearCompleted(year);
             } else {
                 dataLevelSpan.textContent = 'Please select year';
                 dataTypeInfo.innerHTML = 'Please select a time period to see what type of data you\'ll be entering.';
                 datePreviewSpan.textContent = 'Please select time period';
+                if (saveBtn) saveBtn.disabled = true;
+            }
+        }
+
+        // ---- Completion locks for months ----
+        window.__progressCache = {};
+        function isMonthCompleted(year, month) {
+            const y = String(year);
+            const m = parseInt(month, 10);
+            const rec = (window.__progressCache[y] || []).find(x => x.month === m);
+            return rec ? !!rec.complete : false;
+        }
+        function isYearCompleted(year) {
+            try {
+                const y = String(year);
+                const meta = window.__progressCache[y + '__meta'];
+                return !!(meta && meta.year_complete);
+            } catch (_) { return false; }
+        }
+        async function fetchAndLockCompletedMonths(year) {
+            try {
+                const res = await safeFetchJson(`/api/progress?year=${encodeURIComponent(year)}`);
+                if (res && Array.isArray(res.months)) {
+                    window.__progressCache[String(year)] = res.months;
+                    window.__progressCache[String(year) + '__meta'] = { year_complete: !!res.year_complete };
+                    // Decorate the selected year option
+                    const yearSel = document.getElementById('year');
+                    if (yearSel) {
+                        Array.from(yearSel.options).forEach(opt => {
+                            if (!opt.value) return;
+                            const base = opt.value;
+                            if (base === String(year)) {
+                                opt.textContent = res.year_complete ? `${base} (Completed)` : base;
+                            } else {
+                                // reset others to base label only
+                                opt.textContent = base;
+                            }
+                        });
+                    }
+                    const monthSel = document.getElementById('month');
+                    if (monthSel) {
+                        Array.from(monthSel.options).forEach(opt => {
+                            if (!opt.value) return; // skip placeholder
+                            const m = parseInt(opt.value, 10);
+                            const rec = res.months.find(x => x.month === m);
+                            // base label every iteration to avoid duplicate suffixes
+                            const names = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+                            const baseLabel = names[m];
+                            if (rec && rec.complete) {
+                                opt.disabled = true;
+                                opt.textContent = `${baseLabel} (Completed)`;
+                                opt.title = 'This month is already completed (monthly entry or all weeks).';
+                            } else {
+                                opt.disabled = false;
+                                opt.textContent = baseLabel;
+                                opt.title = '';
+                            }
+                        });
+                        // If currently selected month became disabled, clear it
+                        if (monthSel.value && monthSel.options[monthSel.selectedIndex].disabled) {
+                            monthSel.value = '';
+                            updateTimePeriods();
+                        }
+                    }
+                }
+            } catch (e) {
+                // Non-fatal; leave months enabled
             }
         }
 

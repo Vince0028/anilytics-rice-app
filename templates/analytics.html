@@ -241,7 +241,7 @@
                 </div>
                 
                 <div class="chart-container">
-                    <h4>Weekly Sales Patterns</h4>
+                    <h4 id="weeklyPatternsTitle">Sales Patterns</h4>
                     <canvas id="weeklyPatternsChart"></canvas>
                 </div>
             </div>
@@ -377,8 +377,7 @@
                 if (year) params.append('year', year);
                 if (month) params.append('month', month);
                 if (week) params.append('week', week);
-                // Enforce strict when a specific month or week is chosen to avoid fallback aggregates
-                if (month || week) params.append('strict', '1');
+                // Do not force strict filtering; allow backend fallbacks to include broader aggregates
                 
                 const queryString = params.toString();
                 const baseUrl = queryString ? `?${queryString}` : '';
@@ -520,6 +519,107 @@
             });
         }
 
+        // Force-rebuild weekly patterns chart, replacing the canvas to avoid any stale Chart.js state
+        function renderWeeklyPatternsChart(trends, rawSales) {
+            try {
+                const container = document.getElementById('weeklyPatternsChart') ? document.getElementById('weeklyPatternsChart').parentElement : null;
+                const oldCanvas = document.getElementById('weeklyPatternsChart');
+                if (!container) return;
+
+                if (weeklyPatternsChartInstance && typeof weeklyPatternsChartInstance.destroy === 'function') {
+                    try { weeklyPatternsChartInstance.destroy(); } catch (e) {}
+                    weeklyPatternsChartInstance = null;
+                }
+
+                // Replace canvas node entirely to ensure a fresh drawing context
+                if (oldCanvas) {
+                    const newCanvas = document.createElement('canvas');
+                    newCanvas.id = 'weeklyPatternsChart';
+                    oldCanvas.replaceWith(newCanvas);
+                }
+
+                const ctx = document.getElementById('weeklyPatternsChart');
+                // Ensure container has height so responsive charts can size properly
+                if (container && container.style) container.style.height = '320px';
+                if (ctx && ctx.style) ctx.style.maxHeight = '320px';
+
+                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                let labels = [];
+                let values = [];
+                if (trends && trends.weekly_patterns && Object.keys(trends.weekly_patterns).length > 0) {
+                    labels = days;
+                    values = days.map(day => Number.parseFloat(trends.weekly_patterns[day] || 0) || 0);
+                } else if (trends && trends.week_of_month_patterns && Object.keys(trends.week_of_month_patterns).length > 0) {
+                    const wkPairs = Object.keys(trends.week_of_month_patterns).map(k => {
+                        const m = String(k).match(/(\d+)/);
+                        return { label: k, num: m ? parseInt(m[1], 10) : 0, val: Number.parseFloat(trends.week_of_month_patterns[k] || 0) || 0 };
+                    });
+                    wkPairs.sort((a, b) => a.num - b.num);
+                    labels = wkPairs.map(p => p.label);
+                    values = wkPairs.map(p => p.val);
+                } else if (trends && trends.monthly_patterns && Object.keys(trends.monthly_patterns).length > 0) {
+                    const monthOrder = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                    labels = monthOrder.filter(m => Object.prototype.hasOwnProperty.call(trends.monthly_patterns, m));
+                    values = labels.map(m => Number.parseFloat(trends.monthly_patterns[m] || 0) || 0);
+                } else if (Array.isArray(rawSales) && rawSales.length > 0) {
+                    // Derive week-of-month pattern directly from raw sales when trends didn't provide it
+                    const bucket = new Map(); // weekNum -> [values]
+                    for (const e of rawSales) {
+                        let wk = Number.isFinite(parseInt(e.week, 10)) ? parseInt(e.week, 10) : null;
+                        if (!wk && e.week_date) {
+                            // Accept formats like YYYY-MM-W02 or YYYY-MM-W2
+                            const m = String(e.week_date).match(/-W(\d{1,2})$/);
+                            if (m) wk = parseInt(m[1], 10);
+                        }
+                        const sold = Number.parseFloat(e.rice_sold || 0) || 0;
+                        if (Number.isFinite(wk) && wk > 0) {
+                            if (!bucket.has(wk)) bucket.set(wk, []);
+                            bucket.get(wk).push(sold);
+                        }
+                    }
+                    const wkNums = Array.from(bucket.keys()).sort((a,b)=>a-b);
+                    if (wkNums.length) {
+                        labels = wkNums.map(n => `Week ${n}`);
+                        values = wkNums.map(n => {
+                            const arr = bucket.get(n) || [];
+                            const sum = arr.reduce((a,b)=>a+b,0);
+                            return arr.length ? sum / arr.length : 0;
+                        });
+                    } else {
+                        labels = days;
+                        values = days.map(() => 0);
+                    }
+                } else {
+                    // Fallback: render zero bars to avoid a blank canvas
+                    labels = days;
+                    values = days.map(() => 0);
+                }
+
+                if (!ctx || !window.Chart) return;
+                weeklyPatternsChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'Average Sales (kg)', data: values, backgroundColor: '#4a7c59' }] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: (trends && ((trends.weekly_patterns && Object.keys(trends.weekly_patterns).length) || (trends.week_of_month_patterns && Object.keys(trends.week_of_month_patterns).length) || (trends.monthly_patterns && Object.keys(trends.monthly_patterns).length)))
+                                    ? 'Sales Patterns'
+                                    : 'Weekly Sales Patterns (no data)'
+                            }
+                        },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+                // Expose a manual rebuild helper for debugging
+                window.rebuildWeeklyChart = () => renderWeeklyPatternsChart(window.trends || {}, window.rawSales || []);
+            } catch (e) {
+                console.error('renderWeeklyPatternsChart error:', e);
+            }
+        }
+
         function createAdvancedCharts(trends, correlations, marketComparison, analyticsSummary, rawSales) {
             // Moving Average Chart
             if (trends.sales_moving_avg && trends.waste_moving_avg) {
@@ -563,42 +663,16 @@
                 }
             }
 
-            // Weekly Patterns Chart: prefer day-of-week if available; otherwise use week-of-month patterns
-            if (trends.weekly_patterns || trends.week_of_month_patterns) {
-                const ctx = document.getElementById('weeklyPatternsChart');
-                if (ctx) {
-                    if (weeklyPatternsChartInstance && typeof weeklyPatternsChartInstance.destroy === 'function') {
-                        try { weeklyPatternsChartInstance.destroy(); } catch (e) {}
-                        weeklyPatternsChartInstance = null;
-                    }
-                    if (trends.weekly_patterns && Object.keys(trends.weekly_patterns).length > 0) {
-                        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                        weeklyPatternsChartInstance = new Chart(ctx, {
-                            type: 'bar',
-                            data: {
-                                labels: days,
-                                datasets: [{
-                                    label: 'Average Sales (kg)',
-                                    data: days.map(day => trends.weekly_patterns[day] || 0),
-                                    backgroundColor: '#4a7c59'
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                plugins: { title: { display: true, text: 'Weekly Sales Patterns (by Day of Week)' } }
-                            }
-                        });
-                    } else if (trends.week_of_month_patterns) {
-                        const labels = Object.keys(trends.week_of_month_patterns);
-                        const values = labels.map(l => trends.week_of_month_patterns[l] || 0);
-                        weeklyPatternsChartInstance = new Chart(ctx, {
-                            type: 'bar',
-                            data: { labels, datasets: [{ label: 'Average Sales (kg)', data: values, backgroundColor: '#4a7c59' }] },
-                            options: { responsive: true, plugins: { title: { display: true, text: 'Weekly Sales Patterns (by Week of Month)' } } }
-                        });
-                    }
-                }
+            // Weekly/Monthly Patterns Chart: force rebuild using a dedicated helper and set title
+            window.rawSales = Array.isArray(rawSales) ? rawSales : [];
+            const titleEl = document.getElementById('weeklyPatternsTitle');
+            if (titleEl) {
+                if (trends && trends.weekly_patterns && Object.keys(trends.weekly_patterns).length) titleEl.textContent = 'Sales Patterns (Per Day of Week)';
+                else if (trends && trends.week_of_month_patterns && Object.keys(trends.week_of_month_patterns).length) titleEl.textContent = 'Sales Patterns (Per Week of Month)';
+                else if (trends && trends.monthly_patterns && Object.keys(trends.monthly_patterns).length) titleEl.textContent = 'Sales Patterns (Per Month)';
+                else titleEl.textContent = 'Sales Patterns';
             }
+            renderWeeklyPatternsChart(trends, rawSales);
 
             // Correlation Chart (Price vs Demand) with trendline and r, using RAW sales points for accuracy
             {

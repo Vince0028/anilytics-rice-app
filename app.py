@@ -341,8 +341,8 @@ def weeks_in_month(year, month):
 
 def calculate_trend_analysis(data):
     """Calculate trend analysis for rice sales and demand"""
-    if len(data) < 2:
-        return {"error": "Insufficient data for trend analysis"}
+    # Compute partial results even with limited data; default trends to 0 and arrays may be empty
+    data = data or []
     
     # Helper: parse flexible date based on stored fields
     def parse_entry_datetime(entry):
@@ -452,15 +452,41 @@ def calculate_trend_analysis(data):
     # Additionally, provide week-of-month patterns when users enter weekly data
     week_number_patterns = defaultdict(list)
     for entry in data:
-        if entry.get('week') and entry.get('month') and entry.get('year'):
-            try:
+        try:
+            if entry.get('week') and entry.get('month') and entry.get('year'):
                 week_number_patterns[int(entry['week'])].append(entry.get('rice_sold', 0))
-            except Exception:
                 continue
+            # Fallback: infer week number from week_date formatted like YYYY-MM-Www
+            s = (entry.get('week_date', '') or '').strip()
+            if s and '-W' in s:
+                try:
+                    wk_part = s.split('-W', 1)[1]
+                    wk_num = int(wk_part)
+                    if wk_num > 0:
+                        week_number_patterns[wk_num].append(entry.get('rice_sold', 0))
+                except Exception:
+                    pass
+        except Exception:
+            continue
     if week_number_patterns:
         trends["week_of_month_patterns"] = {
             f"Week {wk}": statistics.mean(values) if values else 0
             for wk, values in sorted(week_number_patterns.items())
+        }
+    
+    # Provide monthly patterns when users enter monthly data (or any entries with month field)
+    month_number_patterns = defaultdict(list)
+    for entry in data:
+        try:
+            if entry.get('month') and entry.get('year'):
+                month_number_patterns[int(entry['month'])].append(entry.get('rice_sold', 0))
+        except Exception:
+            continue
+    if month_number_patterns:
+        month_names = ['January','February','March','April','May','June','July','August','September','October','November','December']
+        trends["monthly_patterns"] = {
+            month_names[m - 1]: statistics.mean(values) if values else 0
+            for m, values in sorted(month_number_patterns.items())
         }
     
     return trends
@@ -760,6 +786,48 @@ def submit_data():
             data_level = 'yearly'
             description = f"Year {year}"
         
+        # Prevent conflicting entries: if a yearly record exists for a year, block any further
+        # entries for that year; if a monthly record exists for a year+month, block weekly/daily
+        # entries for that month; also avoid duplicate monthly/yearly entries for same period.
+        try:
+            existing = load_data() or []
+            # Normalize candidates
+            year_int = int(year)
+            month_int = int(month) if (month and month != '') else None
+            week_int = int(week) if (week and week != '') else None
+            day_int = int(day) if (day and day != '') else None
+
+            # Helper checks
+            has_yearly_for_year = any(
+                (e.get('data_level') == 'yearly') and (e.get('year') == year_int)
+                for e in existing
+            )
+            has_monthly_for_month = any(
+                (e.get('data_level') == 'monthly') and (e.get('year') == year_int) and (e.get('month') == month_int)
+                for e in existing
+            )
+            has_same_monthly = (data_level == 'monthly') and has_monthly_for_month
+            has_same_yearly = (data_level == 'yearly') and has_yearly_for_year
+
+            # Enforce constraints
+            if has_yearly_for_year and data_level != 'yearly':
+                flash(f"Year {year_int} is already recorded as a yearly entry. Remove it first if you want to add more granular data.", 'error')
+                return redirect(url_for('data_input'))
+            if has_same_yearly:
+                flash(f"A yearly entry for {year_int} already exists.", 'error')
+                return redirect(url_for('data_input'))
+            if has_monthly_for_month and data_level in ('weekly', 'daily'):
+                mn = f"{month_int:02d}" if month_int else ''
+                flash(f"{year_int}-{mn} already has a monthly entry. Remove it first to add weekly/daily data.", 'error')
+                return redirect(url_for('data_input'))
+            if has_same_monthly:
+                mn = f"{month_int:02d}" if month_int else ''
+                flash(f"A monthly entry for {year_int}-{mn} already exists.", 'error')
+                return redirect(url_for('data_input'))
+        except Exception as _conf_e:
+            # Non-fatal: if validation fails, proceed with insert
+            pass
+
         rice_sold = float(request.form['rice_sold'])
         rice_unsold = float(request.form['rice_unsold'])
         price_per_kg = float(request.form['price_per_kg'])

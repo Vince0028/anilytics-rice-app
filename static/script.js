@@ -238,7 +238,8 @@ async function loadDashboardData(params) {
       if (totalRevenueEl) totalRevenueEl.textContent = '-'
       if (efficiencyScoreEl) efficiencyScoreEl.textContent = '-'
     }
-    updateRecentDataTable(Array.isArray(salesData) ? salesData.slice(-5) : [])
+    // Show all rows for the selected period; the table container scrolls
+    updateRecentDataTable(Array.isArray(salesData) ? salesData : [])
     if (analyticsData && !analyticsData.error && Array.isArray(analyticsData.chart_data)) {
       createSalesChart(analyticsData.chart_data)
       createWasteChart(analyticsData.chart_data)
@@ -739,16 +740,29 @@ async function editRetailerInventoryItem(id) {
 function updateRecentDataTable(data) {
   console.log("Updating recent data table with:", data)
   const tbody = document.getElementById("recentDataBody")
+  const periodHeader = document.getElementById('periodHeader')
+  const titleEl = document.getElementById('recentDataTitle')
   if (!tbody) {
     console.error("Could not find recentDataBody element")
     return
   }
 
+  // Decide label format based on entries: prefer month label if data_level is monthly
+  const labelFor = (entry) => {
+    const wd = entry.week_date || ''
+    if (entry.data_level === 'monthly') return wd
+    if (entry.data_level === 'yearly') return String(entry.year || wd)
+    return wd
+  }
+
+  if (periodHeader) periodHeader.textContent = 'Period'
+  if (titleEl) titleEl.textContent = 'Recent Sales Data'
+
   tbody.innerHTML = data
     .map(
       (entry) => `
     <tr>
-      <td>${entry.week_date}</td>
+      <td>${labelFor(entry)}</td>
       <td>${entry.rice_sold} kg</td>
       <td>${entry.rice_unsold} kg</td>
       <td>₱${entry.price_per_kg}</td>
