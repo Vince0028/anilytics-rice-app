@@ -1968,6 +1968,10 @@ def logout():
     flash('Logged out', 'success')
     return redirect(url_for('login'))
 
+@app.route('/health', methods=['GET'])
+def health():
+    return 'ok', 200
+
 DATABASE_URL = os.getenv("SUPABASE_DB_URL")  # Set this in your environment or .env file
 
 def get_db_connection():
