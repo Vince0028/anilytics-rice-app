@@ -1,7 +1,6 @@
--- Enable UUID extension
+﻿
 create extension if not exists "uuid-ossp";
 
--- PROFILES: standalone (no longer tied to auth.users)
 create table if not exists public.profiles (
   id uuid primary key default uuid_generate_v4(),
   created_at timestamptz default now(),
@@ -12,14 +11,12 @@ create table if not exists public.profiles (
   password_hash text
 );
 
--- Safe alterations for existing projects previously referencing auth.users
 alter table public.profiles alter column id set default uuid_generate_v4();
 alter table public.profiles add column if not exists password_hash text;
 alter table public.profiles add column if not exists email text;
 alter table public.profiles add column if not exists first_name text;
 alter table public.profiles add column if not exists last_name text;
 
--- SALES table
 create table if not exists public.sales (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid not null,
@@ -43,8 +40,7 @@ create table if not exists public.sales (
   total_revenue numeric
 );
 
--- Replace old FK to auth.users with profiles(id)
--- Drop previous constraint if it exists
+
 do $$
 begin
   if exists (
@@ -60,16 +56,11 @@ end $$;
 alter table public.sales
   add constraint sales_user_id_fkey foreign key (user_id) references public.profiles(id) on delete cascade;
 
--- RLS (optional; disable if using direct SQL without Supabase Auth)
--- alter table public.sales enable row level security;
--- alter table public.profiles enable row level security;
 
--- Helpful indexes
 create index if not exists idx_sales_user_id on public.sales(user_id);
 create index if not exists idx_sales_year_month on public.sales(year, month);
 create index if not exists idx_profiles_email on public.profiles(lower(email));
 
--- Roles and retailer fields on profiles
 alter table public.profiles add column if not exists role text;
 update public.profiles set role = coalesce(role, 'consumer');
 do $$
@@ -86,7 +77,6 @@ alter table public.profiles add column if not exists retailer_area text;
 alter table public.profiles add column if not exists retailer_location text;
 create index if not exists idx_profiles_role on public.profiles(role);
 
--- Retailer daily inventory table
 create table if not exists public.retailer_inventory (
   id uuid primary key default uuid_generate_v4(),
   retailer_id uuid not null references public.profiles(id) on delete cascade,

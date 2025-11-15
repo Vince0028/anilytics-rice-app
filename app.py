@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session, send_from_directory
+﻿from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session, send_from_directory
 import json
 import os
 from datetime import datetime, timedelta
@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 import secrets
 import psycopg2
+from psycopg2.pool import ThreadedConnectionPool
+import atexit
 from werkzeug.security import generate_password_hash, check_password_hash
 import decimal
 import datetime as dt
@@ -23,14 +25,12 @@ app = Flask(__name__,
             static_folder='static',
             template_folder='templates')
 
-# Secret key from env with safe fallback
 _sk = os.getenv('SECRET_FLASK_KEY')
 if not _sk or _sk.strip() == '':
     _sk = secrets.token_urlsafe(64)
     print('[WARN] SECRET_FLASK_KEY not set in .env. Using a temporary in-memory key. Set SECRET_FLASK_KEY in .env to persist sessions.')
 app.secret_key = _sk
 
-# ---- Global API JSON normalization and error handling ----
 def wants_json_response() -> bool:
     """Detect if the current request expects a JSON response.
     We treat any /api/* path or requests explicitly accepting JSON as API calls.
@@ -65,7 +65,6 @@ def handle_unexpected_exception(e: Exception):
         pass
     if wants_json_response():
         return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
-    # Non-API requests fall back to a generic 500 to let Flask render a default page
     return ("Internal Server Error", 500)
 
 @app.after_request
@@ -78,14 +77,12 @@ def normalize_api_json_response(response):
     """
     try:
         if wants_json_response():
-            # Enforce no-cache on API responses to avoid stale data after account changes
             try:
                 response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
                 response.headers['Pragma'] = 'no-cache'
                 response.headers['Expires'] = '0'
             except Exception:
                 pass
-            # Normalize redirects into JSON payload to avoid following HTML redirects in fetch()
             if response.status_code in (301, 302, 303, 307, 308):
                 loc = response.headers.get('Location')
                 payload = {'redirect': loc} if loc else {'message': 'Redirect'}
@@ -93,18 +90,15 @@ def normalize_api_json_response(response):
                 jr.status_code = response.status_code
                 return jr
 
-            # Keep cache/empty/not modified responses intact
             if response.status_code in (204, 304):
                 return response
 
-            # Respect already JSON responses
             content_type = (response.mimetype or response.headers.get('Content-Type', '') or '').lower()
             if 'application/json' in content_type:
                 return response
 
             body = response.get_data(as_text=True)
 
-            # If body is JSON but header is wrong, re-wrap with correct mimetype
             try:
                 parsed = json.loads(body) if body else {}
                 jr = app.response_class(
@@ -116,7 +110,6 @@ def normalize_api_json_response(response):
             except Exception:
                 pass
 
-            # Coerce text/HTML to JSON envelope
             text = (body or '').strip()
             payload = {'error': text} if response.status_code >= 400 else {'message': text}
             jr = jsonify(payload)
@@ -124,10 +117,8 @@ def normalize_api_json_response(response):
             return jr
         return response
     except Exception:
-        # Never break the original response if normalization fails
         return response
 
-# Supabase configuration
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY')
 SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
@@ -235,12 +226,10 @@ def filter_data_by_time(data, year=None, month=None, week=None, strict=False):
         except Exception:
             return None
 
-    # Start with year filtering if provided
     filtered_by_year = data
     if year is not None:
         filtered_by_year = [e for e in data if e.get('year') == year]
 
-    # Strict filtering first
     strict_filtered = filtered_by_year
     if month is not None:
         strict_filtered = [e for e in strict_filtered if e.get('month') == month]
@@ -250,16 +239,13 @@ def filter_data_by_time(data, year=None, month=None, week=None, strict=False):
             if (e.get('week') == week) or (e.get('day') is not None and week_from_day(e.get('day')) == week)
         ]
 
-    # If strict mode, return as-is (may be empty)
     if strict:
         return strict_filtered
 
     if strict_filtered:
         return strict_filtered
 
-    # Fallbacks when strict filtering produced no results
     if week is not None:
-        # Fallback to monthly-level data for the month if available
         if month is not None:
             monthly = [
                 e for e in filtered_by_year
@@ -267,20 +253,17 @@ def filter_data_by_time(data, year=None, month=None, week=None, strict=False):
             ]
             if monthly:
                 return monthly
-        # Fallback to yearly-level data for the year
         if year is not None:
             yearly = [e for e in filtered_by_year if e.get('data_level') == 'yearly']
             if yearly:
                 return yearly
 
     if month is not None:
-        # Fallback to yearly-level if month-level data absent
         if year is not None:
             yearly = [e for e in filtered_by_year if e.get('data_level') == 'yearly']
             if yearly:
                 return yearly
 
-    # If only year provided or nothing matched, return year-filtered set (or original data)
     return filtered_by_year
 
 def insert_data_entry(data_entry: dict):
@@ -364,7 +347,7 @@ def calculate_trend_analysis(data):
                 return datetime(int(year), 1, 1)
             # Fallback to parsing known formats in week_date
             wd = entry.get('week_date', '')
-            for fmt in ('%Y-%m-%d', '%Y-%m', '%Y'):
+            for fmt in ('%Y-%m-%d', '%Y-%m'):
                 try:
                     return datetime.strptime(wd, fmt)
                 except Exception:
@@ -496,7 +479,6 @@ def calculate_correlation_analysis(data):
     if len(data) < 3:
         return {"error": "Insufficient data for correlation analysis"}
     
-    # Extract variables, convert to float
     sold = [float(entry.get('rice_sold', 0)) for entry in data]
     unsold = [float(entry.get('rice_unsold', 0)) for entry in data]
     prices = [float(entry.get('price_per_kg', 0)) for entry in data]
@@ -530,7 +512,6 @@ def calculate_correlation_analysis(data):
         "demand_vs_waste": correlation_coefficient(sold, waste_percentages)
     }
     
-    # Interpret correlations
     def interpret_correlation(corr):
         if abs(corr) >= 0.7:
             strength = "Strong"
@@ -593,20 +574,16 @@ def generate_ai_recommendations(data_entry, historical_data):
     """Generate AI-powered recommendations based on sales data and historical patterns"""
     recommendations = []
     
-    # Normalize incoming values to float to avoid Decimal/float issues
     waste_percentage = float(data_entry.get('waste_percentage', 0) or 0)
     customer_demand = data_entry.get('customer_demand', '')
     competitors = float(data_entry.get('competitors', 0) or 0)
     price_per_kg = float(data_entry.get('price_per_kg', 0) or 0)
     
-    # Historical analysis
     if historical_data:
-        # Use floats because DB numeric types may come back as Decimal
         avg_waste = statistics.mean([float(entry.get('waste_percentage', 0) or 0) for entry in historical_data])
         avg_price = statistics.mean([float(entry.get('price_per_kg', 0) or 0) for entry in historical_data])
         avg_sold = statistics.mean([float(entry.get('rice_sold', 0) or 0) for entry in historical_data])
         
-        # Waste-based recommendations with historical context
         if waste_percentage > avg_waste + 5:
             recommendations.append(f"Waste is {waste_percentage - avg_waste:.1f}% higher than average. Consider reducing next week's order by 15-20%")
         elif waste_percentage < avg_waste - 5:
@@ -614,28 +591,23 @@ def generate_ai_recommendations(data_entry, historical_data):
         else:
             recommendations.append("Waste levels are within normal range. Maintain current ordering levels")
         
-        # Price optimization recommendations
         if price_per_kg > avg_price * 1.1:
             recommendations.append("Price is significantly higher than average. Consider competitive pricing to increase sales")
         elif price_per_kg < avg_price * 0.9:
             recommendations.append("Price is lower than average. You might be underpricing. Consider increasing price by 5-10%")
     
-    # Demand-based recommendations
     if customer_demand == "High":
         recommendations.append("High demand expected - consider increasing stock by 10-15% and maintaining competitive pricing")
     elif customer_demand == "Low":
         recommendations.append("Low demand period - reduce stock to minimize waste and consider promotional pricing")
     
-    # Competition-based recommendations
     if competitors > 3:
         recommendations.append("High competition area - focus on competitive pricing, quality, and customer service")
     elif competitors < 2:
         recommendations.append("Low competition - you have pricing power. Consider optimizing for profit margins")
     
-    # Seasonal recommendations (if we have enough data)
     if len(historical_data) >= 4:
         current_month = datetime.now().month
-        # Robustly determine the month of an entry (supports daily/weekly/monthly/yearly)
         def _entry_month(entry):
             try:
                 y = entry.get('year'); m = entry.get('month'); d = entry.get('day'); w = entry.get('week')
@@ -646,13 +618,11 @@ def generate_ai_recommendations(data_entry, historical_data):
                 if y and m:
                     return int(m)
                 s = (entry.get('week_date', '') or '').strip()
-                # Try common formats
                 for fmt in ('%Y-%m-%d', '%Y-%m'):
                     try:
                         return datetime.strptime(s, fmt).month
                     except Exception:
                         continue
-                # Weekly pattern like YYYY-MM-Www -> month is the MM
                 if '-W' in s:
                     try:
                         ym, _wk = s.split('-W')
@@ -737,12 +707,10 @@ def submit_data():
         week = request.form.get('week', '')    # Optional
         day = request.form.get('day', '')      # Optional
         
-        # Determine data level and create appropriate date representation
         if month and month != '':
             month = int(month)
             if week and week != '':
                 week = int(week)
-                # Clamp week into valid range for the month
                 try:
                     max_weeks_for_month = weeks_in_month(year, month)
                     if week < 1:
@@ -753,9 +721,7 @@ def submit_data():
                     pass
                 if day and day != '':
                     day = int(day)
-                    # Clamp day into valid range for the selected week within the month
                     try:
-                        # Compute allowed day range for the selected week
                         days_in_month = (datetime(year, month, 1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
                         days_in_month = days_in_month.day
                         start_day = (int(week) - 1) * 7 + 1
@@ -766,38 +732,29 @@ def submit_data():
                             day = end_day
                     except Exception:
                         pass
-                    # Daily data
                     week_date = datetime(year, month, day).strftime('%Y-%m-%d')
                     data_level = 'daily'
                     description = f"Day {day} of {month}/{year}"
                 else:
-                    # Weekly data
                     week_date = f"{year}-{month:02d}-W{week:02d}"
                     data_level = 'weekly'
                     description = f"Week {week} of {month}/{year}"
             else:
-                # Monthly data
                 week_date = f"{year}-{month:02d}"
                 data_level = 'monthly'
                 description = f"Month {month} of {year}"
         else:
-            # Yearly data
             week_date = f"{year}"
             data_level = 'yearly'
             description = f"Year {year}"
         
-        # Prevent conflicting entries: if a yearly record exists for a year, block any further
-        # entries for that year; if a monthly record exists for a year+month, block weekly/daily
-        # entries for that month; also avoid duplicate monthly/yearly entries for same period.
         try:
             existing = load_data() or []
-            # Normalize candidates
             year_int = int(year)
             month_int = int(month) if (month and month != '') else None
             week_int = int(week) if (week and week != '') else None
             day_int = int(day) if (day and day != '') else None
 
-            # Helper checks
             has_yearly_for_year = any(
                 (e.get('data_level') == 'yearly') and (e.get('year') == year_int)
                 for e in existing
@@ -809,7 +766,6 @@ def submit_data():
             has_same_monthly = (data_level == 'monthly') and has_monthly_for_month
             has_same_yearly = (data_level == 'yearly') and has_yearly_for_year
 
-            # Enforce constraints
             if has_yearly_for_year and data_level != 'yearly':
                 flash(f"Year {year_int} is already recorded as a yearly entry. Remove it first if you want to add more granular data.", 'error')
                 return redirect(url_for('data_input'))
@@ -825,7 +781,6 @@ def submit_data():
                 flash(f"A monthly entry for {year_int}-{mn} already exists.", 'error')
                 return redirect(url_for('data_input'))
         except Exception as _conf_e:
-            # Non-fatal: if validation fails, proceed with insert
             pass
 
         rice_sold = float(request.form['rice_sold'])
@@ -837,13 +792,10 @@ def submit_data():
         competitors = int(request.form['competitors'])
         customer_demand = request.form['customer_demand']
         
-        # Calculate predicted demand using the rice demand model
         predicted_demand = calculate_rice_demand(population, avg_consumption, purchasing_power, competitors)
         
-        # Calculate waste percentage
         waste_percentage = calculate_waste_percentage(rice_sold, rice_unsold)
         
-        # Store data with flexible date information
         data_entry = {
             'id': str(uuid.uuid4()),
             'timestamp': datetime.now().isoformat(),
@@ -866,7 +818,6 @@ def submit_data():
             'total_revenue': round(rice_sold * price_per_kg, 2)
         }
         
-        # Insert to Supabase
         ok = insert_data_entry(data_entry)
         print(f"Added new {data_level} entry: {description} - Sold: {data_entry['rice_sold']}kg, Unsold: {data_entry['rice_unsold']}kg (Supabase insert ok={ok})")
         
@@ -1026,6 +977,7 @@ def get_progress():
             'months': months_info,
             'has_year_entry': has_year_entry
         })
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -1035,14 +987,12 @@ def get_sales_data():
     """Get all sales data"""
     try:
         data = load_data()
-        # Allow optional filter by year
         year = request.args.get('year', type=int)
         month = request.args.get('month', type=int)
         week = request.args.get('week', type=int)
         strict = bool(request.args.get('strict', default=0, type=int))
         if year is not None or month is not None or week is not None:
             data = filter_data_by_time(data, year, month, week, strict=strict)
-        # Ensure JSON serializable output
         data = [serialize_entry(e) for e in data]
         return jsonify(data)
     except Exception as e:
@@ -1187,23 +1137,19 @@ def get_analytics():
 def get_trend_analysis():
     """Get trend analysis data"""
     try:
-        # Get time filter parameters
         year = request.args.get('year', type=int)
         month = request.args.get('month', type=int)
         week = request.args.get('week', type=int)
         strict = bool(request.args.get('strict', default=0, type=int))
         
         sales_data = load_data()
-        # Apply time filtering
         if year is not None or month is not None or week is not None:
             sales_data = filter_data_by_time(sales_data, year, month, week, strict=strict)
         trends = calculate_trend_analysis(sales_data)
-        # --- PATCH: Ensure moving averages are lists of floats, not strings ---
         if 'sales_moving_avg' in trends:
             trends['sales_moving_avg'] = [float(x) for x in trends['sales_moving_avg']]
         if 'waste_moving_avg' in trends:
             trends['waste_moving_avg'] = [float(x) for x in trends['waste_moving_avg']]
-        # Serialize all values in trends dict
         trends = {k: to_serializable(v) if not isinstance(v, dict) else {ik: to_serializable(iv) for ik, iv in v.items()} for k, v in trends.items()}
         return jsonify(trends)
     except Exception as e:
@@ -1251,7 +1197,6 @@ def get_correlation_analysis():
 def get_market_comparison():
     """Get market comparison data"""
     try:
-        # Get time filter parameters
         year = request.args.get('year', type=int)
         month = request.args.get('month', type=int)
         week = request.args.get('week', type=int)
@@ -1259,15 +1204,12 @@ def get_market_comparison():
         
         sales_data = load_data()
         
-        # Apply time filtering
         if year is not None or month is not None or week is not None:
             sales_data = filter_data_by_time(sales_data, year, month, week, strict=strict)
         
         comparison = calculate_market_comparison(sales_data)
-        # If function returned an error-only dict, pass it through directly
         if isinstance(comparison, dict) and 'error' in comparison and len(comparison) == 1:
             return jsonify(comparison)
-        # Ensure JSON serializable nested values while handling non-dict values safely
         serial = {
             k: ({ik: to_serializable(iv) for ik, iv in v.items()} if isinstance(v, dict) else to_serializable(v))
             for k, v in comparison.items()
@@ -1310,13 +1252,10 @@ def generate_forecast():
         if len(sales_data) < 2:
             return jsonify({"error": "Insufficient historical data for forecasting"})
         
-        # Calculate trends
         trends = calculate_trend_analysis(sales_data)
         
-        # Get latest data point
         latest_data = max(sales_data, key=lambda x: x.get('timestamp', '') or x.get('week_date', ''))
         
-        # Determine a usable datetime for the latest entry (supports daily/weekly/monthly/yearly)
         def _parse_entry_date(entry):
             try:
                 y = entry.get('year'); m = entry.get('month'); d = entry.get('day'); w = entry.get('week')
@@ -1331,7 +1270,7 @@ def generate_forecast():
                 if y:
                     return datetime(int(y), 1, 1)
                 s = entry.get('week_date', '')
-                for fmt in ('%Y-%m-%d', '%Y-%m', '%Y'):
+                for fmt in ('%Y-%m-%d', '%Y-%m'):
                     try:
                         return datetime.strptime(s, fmt)
                     except Exception:
@@ -1349,18 +1288,15 @@ def generate_forecast():
                 pass
             return datetime.now()
         
-        # Generate forecast
         forecast = []
         current_date = _parse_entry_date(latest_data)
         
-        # Use sales and unsold trends (kg), not waste% slope, for projection
         sales_trend = trends.get('sales_trend', 0) or 0
         unsold_trend = trends.get('unsold_trend', 0) or 0
         
         for week in range(1, forecast_weeks + 1):
             forecast_date = current_date + timedelta(weeks=week)
             
-            # Simple trend-based forecast
             forecast_sold = max(0, (latest_data.get('rice_sold', 0) or 0) + (sales_trend * week))
             forecast_unsold = max(0, (latest_data.get('rice_unsold', 0) or 0) + (unsold_trend * week))
             
@@ -1464,9 +1400,6 @@ def delete_sales_data(sales_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# ---------------------------
-# Retailer Inventory Endpoints
-# ---------------------------
 @app.route('/api/retailer/inventory', methods=['GET'])
 @login_required
 @role_required('retailer')
@@ -1795,7 +1728,6 @@ def api_company_profile(retailer_id):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # If already authenticated, go to dashboard
     if request.method == 'GET' and session.get('sb_user'):
         user = session.get('sb_user')
         if user and user.get('role') == 'consumer':
@@ -1836,7 +1768,6 @@ def login():
         except Exception as e:
             print(f"[login] Login failed for {email_raw}: {e}")
             flash(f'Login failed: {e}', 'error')
-    # Discover images in the local `image/` folder for the login carousel
     try:
         image_dir = os.path.join(os.path.dirname(__file__), 'image')
         carousel_images = []
@@ -1851,7 +1782,6 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # If already authenticated, go to dashboard
     if request.method == 'GET' and session.get('sb_user'):
         user = session.get('sb_user')
         if user and user.get('role') == 'consumer':
@@ -1869,7 +1799,6 @@ def register():
         retailer_area = request.form.get('retailer_area')
         retailer_location = request.form.get('retailer_location')
         if role == 'retailer':
-            # Basic validation for retailer-specific fields
             missing = []
             if not retailer_company or retailer_company.strip() == '':
                 missing.append('Company name')
@@ -1883,7 +1812,6 @@ def register():
         try:
             conn = get_db_connection()
             cur = conn.cursor()
-            # Check for duplicate email
             cur.execute("SELECT id FROM profiles WHERE email = %s", (email_raw,))
             if cur.fetchone():
                 flash('Email already registered', 'error')
@@ -1914,7 +1842,6 @@ def register():
             conn.commit()
             cur.close()
             conn.close()
-            # Do not auto-login; require explicit login after registration
             flash('Account created successfully. Please log in.', 'success')
             return redirect(url_for('login'))
         except Exception as e:
@@ -1950,7 +1877,6 @@ def consumer_dashboard():
 def company_page(retailer_id):
     """Company detail page for consumers to view retailer-specific inventory and stats."""
     user = session.get('sb_user')
-    # Retailers can be redirected to their dashboard or allowed; here we allow view for simplicity
     return render_template('company.html', retailer_id=retailer_id, user=user)
 
 @app.route('/logout')
@@ -1974,14 +1900,73 @@ def health():
 
 DATABASE_URL = os.getenv("SUPABASE_DB_URL")  # Set this in your environment or .env file
 
-def get_db_connection():
+DB_POOL_MIN_CONN = int(os.getenv("DB_POOL_MIN_CONN", "1") or "1")
+DB_POOL_MAX_CONN = int(os.getenv("DB_POOL_MAX_CONN", "4") or "4")
+if DB_POOL_MAX_CONN < DB_POOL_MIN_CONN:
+    DB_POOL_MAX_CONN = DB_POOL_MIN_CONN
+DB_POOL = None
+
+class _PooledConnection:
+    """Thin wrapper that returns the connection to the pool on close()."""
+    def __init__(self, pool: ThreadedConnectionPool, conn):
+        self._pool = pool
+        self._conn = conn
+        self._returned = False
+    def close(self):
+        if self._returned:
+            return
+        try:
+            self._pool.putconn(self._conn)
+        except Exception:
+            try:
+                self._conn.close()
+            except Exception:
+                pass
+        finally:
+            self._returned = True
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+def _init_db_pool():
+    """Initialize a per-process ThreadedConnectionPool."""
+    global DB_POOL
+    if DB_POOL is not None:
+        return
     if not DATABASE_URL or not DATABASE_URL.strip():
         raise RuntimeError("SUPABASE_DB_URL is not set. Create a .env with SUPABASE_DB_URL=postgresql://user:pass@host:port/db")
     try:
-        conn = psycopg2.connect(DATABASE_URL)
-        return conn
+        DB_POOL = ThreadedConnectionPool(
+            minconn=DB_POOL_MIN_CONN,
+            maxconn=DB_POOL_MAX_CONN,
+            dsn=DATABASE_URL
+        )
+        print(f"[DB] Initialized ThreadedConnectionPool(min={DB_POOL_MIN_CONN}, max={DB_POOL_MAX_CONN})")
     except Exception as e:
-        print(f"[DB] Connection failed: {e}")
+        print(f"[DB] Pool initialization failed: {e}")
+        raise
+
+@atexit.register
+def _close_db_pool():
+    """Ensure connections are closed when the process exits."""
+    global DB_POOL
+    try:
+        if DB_POOL is not None:
+            DB_POOL.closeall()
+            DB_POOL = None
+            print("[DB] Connection pool closed")
+    except Exception:
+        pass
+
+def get_db_connection():
+    """Get a pooled DB connection. Call conn.close() to return it to the pool."""
+    global DB_POOL
+    if DB_POOL is None:
+        _init_db_pool()
+    try:
+        raw_conn = DB_POOL.getconn()
+        return _PooledConnection(DB_POOL, raw_conn)
+    except Exception as e:
+        print(f"[DB] Failed to get pooled connection: {e}")
         raise
 
 if __name__ == '__main__':

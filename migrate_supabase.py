@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys
 import re
 import argparse
@@ -10,12 +10,10 @@ import psycopg
 
 def read_sql_file(sql_path: Path) -> str:
     sql = sql_path.read_text(encoding='utf-8')
-    # Strip psql-style comments while keeping SQL comments if any
     return sql
 
 
 def split_statements(sql: str):
-    # Naive split on semicolons not inside strings; good enough for our schema
     statements = []
     buf = []
     in_single = False
@@ -33,7 +31,6 @@ def split_statements(sql: str):
     tail = ''.join(buf).strip()
     if tail:
         statements.append(tail)
-    # Remove empty
     return [s for s in statements if s and not re.fullmatch(r"--.*", s)]
 
 
@@ -42,16 +39,13 @@ def main():
     parser.add_argument('--db-url', dest='db_url', help='Postgres connection URL (overrides env)')
     args = parser.parse_args()
 
-    # Load environment from project root .env
     load_dotenv(dotenv_path=Path(__file__).parent / '.env')
 
     db_url = (args.db_url or os.getenv('SUPABASE_DB_URL') or '').strip()
-    # Normalize minor variations
     if db_url:
         db_url = db_url.strip('"').strip("'")
         if db_url.startswith('postgres://'):
             db_url = 'postgresql://' + db_url[len('postgres://'):]
-        # Ensure sslmode=require for Supabase pooler
         if 'sslmode=' not in db_url:
             sep = '&' if '?' in db_url else '?'
             db_url = f"{db_url}{sep}sslmode=require"
@@ -80,7 +74,6 @@ def main():
                     cur.execute(stmt)
                     print(f"[{idx}/{len(statements)}] Executed")
                 except Exception as e:
-                    # Continue on "already exists" errors
                     msg = str(e).lower()
                     if 'already exists' in msg or 'duplicate key value' in msg:
                         print(f"[{idx}/{len(statements)}] Skipped (exists)")
@@ -93,5 +86,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 

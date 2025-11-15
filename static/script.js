@@ -1,8 +1,8 @@
-let salesChartInstance = null;
+﻿let salesChartInstance = null;
 let wasteChartInstance = null;
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Set default date to current Monday for convenience
+
   const dateInput = document.getElementById("week_date")
   if (dateInput) {
     const today = new Date()
@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
     dateInput.value = monday.toISOString().split("T")[0]
   }
 
-  // Mobile menu toggle
   const navToggle = document.getElementById("navToggle")
   const navMenu = document.getElementById("navMenu")
 
@@ -21,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 
-  // Form validation helpers
   const forms = document.querySelectorAll("form")
   forms.forEach((form) => {
     form.addEventListener("submit", (e) => {
@@ -44,7 +42,6 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   })
 
-  // Auto-calculate waste percentage preview
   const riceSoldInput = document.getElementById("rice_sold")
   const riceUnsoldInput = document.getElementById("rice_unsold")
   const wastePreview = document.getElementById("wastePreview")
@@ -80,9 +77,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Load dashboard data
   if (window.location.pathname === "/" || window.location.pathname.includes("dashboard")) {
-    // If dashboard has filters, wire them up
+
     const yearSel = document.getElementById('dashboardYear')
     const monthSel = document.getElementById('dashboardMonth')
     const periodSel = document.getElementById('dashboardPeriod')
@@ -94,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (yearSel && yearSel.value) params.append('year', yearSel.value)
       if (monthSel && monthSel.value) {
         params.append('month', monthSel.value)
-        // Enforce strict filter when a specific month is chosen to avoid fallback totals
+
         params.append('strict', '1')
       }
       if (periodSel && periodSel.value) params.append('period', periodSel.value) // period: year|month|week
@@ -111,7 +107,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     loadDashboardData()
 
-    // Retailer inventory section (only present for retailers)
     const riForm = document.getElementById('retailerInventoryForm')
     if (riForm) {
       riForm.addEventListener('submit', handleRetailerInventorySubmit)
@@ -120,7 +115,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Consumer inventory page initialization
   const consumerResultsBody = document.getElementById('inventoryResultsBody')
   if (consumerResultsBody) {
     const apply = document.getElementById('invApply')
@@ -144,21 +138,16 @@ document.addEventListener("DOMContentLoaded", () => {
     loadConsumerInventory()
   }
 
-  // Company page initialization
   if (window.location.pathname.startsWith('/company/')) {
     initCompanyPage()
   }
 
-  // Removed auto-loader for analytics page to avoid double fetch and function collisions
-  // (analytics.html includes its own loader and functions)
 
-  // Prediction form handler
   const predictionForm = document.getElementById("predictionForm")
   if (predictionForm) {
     predictionForm.addEventListener("submit", handlePrediction)
   }
 
-  // Attach modal button listeners after DOM is ready
   const cancelBtn = document.getElementById('cancelDeleteBtn');
   const confirmBtn = document.getElementById('confirmDeleteBtn');
   if (cancelBtn) cancelBtn.onclick = hideDeleteModal;
@@ -184,9 +173,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 })
 
-// Removed global spinner utilities
 
-// Safe JSON parsing helpers to harden fetch handlers against non-JSON responses
 async function safeParseJson(response) {
   try {
     const ct = (response.headers && response.headers.get && response.headers.get('content-type')) || ''
@@ -238,13 +225,13 @@ async function loadDashboardData(params) {
       if (totalRevenueEl) totalRevenueEl.textContent = '-'
       if (efficiencyScoreEl) efficiencyScoreEl.textContent = '-'
     }
-    // Show all rows for the selected period; the table container scrolls
+
     updateRecentDataTable(Array.isArray(salesData) ? salesData : [])
     if (analyticsData && !analyticsData.error && Array.isArray(analyticsData.chart_data)) {
       createSalesChart(analyticsData.chart_data)
       createWasteChart(analyticsData.chart_data)
     } else {
-      // Clear charts to avoid stale visuals
+
       createSalesChart([])
       createWasteChart([])
     }
@@ -284,9 +271,7 @@ async function loadAnalyticsData() {
   }
 }
 
-// -------------------------------
-// Consumer Inventory (Browse)
-// -------------------------------
+
 async function loadConsumerInventory() {
   const body = document.getElementById('inventoryResultsBody')
   if (!body) return
@@ -322,7 +307,7 @@ function renderConsumerInventoryTable(items) {
     body.innerHTML = '<tr><td colspan="3">No results</td></tr>'
     return
   }
-  // Build a unique list of retailers
+
   const byRetailer = new Map()
   items.forEach((it) => {
     const key = it.retailer_id || it.retailer_company || 'unknown'
@@ -336,7 +321,6 @@ function renderConsumerInventoryTable(items) {
     }
   })
 
-  // Render simple rows: Retailer | Area | Location
   const rows = Array.from(byRetailer.values()).map((g) => {
     const href = g.id ? `/company/${encodeURIComponent(g.id)}` : ''
     return `
@@ -349,7 +333,6 @@ function renderConsumerInventoryTable(items) {
   })
   body.innerHTML = rows.join('')
 
-  // Make whole row clickable + keyboard accessible
   body.querySelectorAll('tr.clickable-row').forEach((tr) => {
     const href = tr.getAttribute('data-href')
     if (!href) return
@@ -363,9 +346,7 @@ function renderConsumerInventoryTable(items) {
   })
 }
 
-// -------------------------------
-// Company Page (profile + listings)
-// -------------------------------
+
 function initCompanyPage() {
   try {
     const retailerId = getRetailerIdFromPath()
@@ -453,9 +434,7 @@ function renderCompanyStats(items) {
   `
 }
 
-// ---------------------------------------
-// Retailer Inventory (CRUD for dashboard)
-// ---------------------------------------
+
 async function loadRetailerInventory() {
   const tbody = document.getElementById('retailerInventoryTableBody')
   if (!tbody) return
@@ -485,7 +464,6 @@ function renderRetailerInventoryTable(items) {
     return
   }
 
-  // Group by date (prefer date_posted, fallback to created_at)
   const groups = {}
   items.forEach((it) => {
     const label = fmtDate(it.date_posted || it.created_at)
@@ -494,7 +472,6 @@ function renderRetailerInventoryTable(items) {
     groups[key].push(it)
   })
 
-  // Sort groups by date desc; "No date" last
   const keys = Object.keys(groups).sort((a, b) => {
     const da = a === 'No date' ? -Infinity : new Date(a).getTime()
     const db = b === 'No date' ? -Infinity : new Date(b).getTime()
@@ -533,7 +510,6 @@ function renderRetailerInventoryTable(items) {
   })
   tbody.innerHTML = html
 
-  // expand/collapse handlers
   tbody.querySelectorAll('.ri-group-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.getAttribute('data-target')
@@ -547,7 +523,6 @@ function renderRetailerInventoryTable(items) {
     })
   })
 
-  // attach edit/delete handlers
   tbody.querySelectorAll('.ri-edit').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const id = e.currentTarget.getAttribute('data-id')
@@ -562,9 +537,7 @@ function renderRetailerInventoryTable(items) {
   })
 }
 
-// -------------------------------
-// Multi-row inventory UI helpers
-// -------------------------------
+
 function createRiRow() {
   const row = document.createElement('div')
   row.className = 'ri-row'
@@ -601,7 +574,6 @@ function initRetailerInventoryMultiRow() {
   const addBtn = document.getElementById('ri_add_row')
   if (!container || !addBtn) return
 
-  // Wire existing row(s)
   container.querySelectorAll('.ri-row .remove-row').forEach((btn) => {
     if (!btn.dataset.bound) {
       btn.addEventListener('click', (e) => {
@@ -615,7 +587,6 @@ function initRetailerInventoryMultiRow() {
     }
   })
 
-  // Add new rows
   addBtn.addEventListener('click', () => {
     container.appendChild(createRiRow())
   })
@@ -655,7 +626,7 @@ async function handleRetailerInventorySubmit(e) {
       return
     }
   } else {
-    // Legacy single-row fallback
+
     const variety = document.getElementById('ri_variety')
     const stock = document.getElementById('ri_stock')
     const price = document.getElementById('ri_price')
@@ -686,7 +657,6 @@ async function handleRetailerInventorySubmit(e) {
       alert('Some entries failed to save:\n' + msg)
     }
 
-    // Reset rows to a single empty row, keep date for convenience
     if (rowsContainer) {
       rowsContainer.innerHTML = ''
       rowsContainer.appendChild(createRiRow())
@@ -747,7 +717,6 @@ function updateRecentDataTable(data) {
     return
   }
 
-  // Decide label format based on entries: prefer month label if data_level is monthly
   const labelFor = (entry) => {
     const wd = entry.week_date || ''
     if (entry.data_level === 'monthly') return wd
@@ -780,13 +749,11 @@ function createSalesChart(data) {
   const canvas = document.getElementById("salesChart")
   if (!canvas || !window.Chart) return
 
-  // Destroy previous instance
   if (salesChartInstance) {
     try { salesChartInstance.destroy() } catch (e) {}
     salesChartInstance = null
   }
 
-  // If no data, leave canvas cleared
   if (!Array.isArray(data) || data.length === 0) {
     const c2d = canvas.getContext && canvas.getContext('2d')
     if (c2d) {
@@ -836,7 +803,6 @@ function createWasteChart(data) {
   const canvas = document.getElementById("wasteChart")
   if (!canvas || !window.Chart) return
 
-  // Destroy previous instance
   if (wasteChartInstance) {
     try { wasteChartInstance.destroy() } catch (e) {}
     wasteChartInstance = null
@@ -886,7 +852,7 @@ function createWasteChart(data) {
 }
 
 function createAdvancedCharts(data) {
-  // Revenue vs Waste Chart
+
   const revenueWasteCtx = document.getElementById("revenueWasteChart")
   if (revenueWasteCtx && window.Chart) {
     new Chart(revenueWasteCtx, {
@@ -921,7 +887,6 @@ function createAdvancedCharts(data) {
     })
   }
 
-  // Price Trends Chart
   const priceCtx = document.getElementById("priceChart")
   if (priceCtx && window.Chart) {
     new Chart(priceCtx, {
@@ -949,7 +914,6 @@ function createAdvancedCharts(data) {
     })
   }
 
-  // Sales Distribution Chart
   const salesDistCtx = document.getElementById("salesDistributionChart")
   if (salesDistCtx && window.Chart) {
     new Chart(salesDistCtx, {
@@ -971,14 +935,14 @@ function createAdvancedCharts(data) {
 }
 
 function renderTrendsSection(trends) {
-  // Moving averages line is already handled in analytics.html script for that page.
-  // Here we can update any additional charts if needed using trends.labels as x-axis
+
+
 }
 
 function renderCorrelationSection(correlations) {
   const grid = document.getElementById('correlationGrid')
   if (!grid) return
-  // Always clear previous content to avoid stale UI on errors
+
   grid.innerHTML = ''
   if (!correlations || correlations.error) {
     return
@@ -994,16 +958,15 @@ function renderCorrelationSection(correlations) {
 
   const chartEl = document.getElementById('correlationChart')
   if (chartEl && window.Chart) {
-    // For now plot price vs demand (sold)
-    // This requires chart_data context; if not available here, skip drawing
-    // We leave rendering to the server-provided aggregated analytics chart when possible
+
+
   }
 }
 
 function renderMarketComparisonSection(comparison) {
   const grid = document.getElementById('marketComparisonGrid')
   if (!grid) return
-  // Always clear previous content
+
   grid.innerHTML = ''
   if (!comparison || comparison.error) {
     return

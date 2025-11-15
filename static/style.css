@@ -1,4 +1,4 @@
-* {
+﻿* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -24,7 +24,7 @@ body:not(.auth)::before {
   z-index: -1;
 }
 
-/* Enhanced Analytics Styles */
+
 .analytics-section {
     margin-bottom: 2rem;
     padding: 1.5rem;
@@ -33,7 +33,7 @@ body:not(.auth)::before {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Time Period Controls */
+
 .time-controls {
     display: flex;
     flex-wrap: wrap;
@@ -115,7 +115,7 @@ body:not(.auth)::before {
     font-size: 0.9rem;
 }
 
-/* Year Selection for Dashboard */
+
 .year-selection {
     display: flex;
     align-items: center;
@@ -157,7 +157,7 @@ body:not(.auth)::before {
     font-size: 0.9rem;
 }
 
-/* Mobile Responsiveness */
+
 @media (max-width: 768px) {
     .time-controls {
         flex-direction: column;
@@ -172,8 +172,8 @@ body:not(.auth)::before {
         width: 100%;
         min-width: auto;
     }
-    
-    /* Buttons full-width on mobile */
+
+
     .time-controls > #invApply { margin-left: 0; }
     .time-controls > button { width: 100%; }
 
@@ -214,7 +214,7 @@ body:not(.auth)::before {
     padding-bottom: 0.5rem;
 }
 
-/* Data Quality Grid */
+
 .quality-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -248,7 +248,7 @@ body:not(.auth)::before {
     color: #4a7c59;
 }
 
-/* Trends Grid */
+
 .trends-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -298,7 +298,7 @@ body:not(.auth)::before {
     color: #6c757d;
 }
 
-/* Correlation Grid */
+
 .correlation-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -332,7 +332,7 @@ body:not(.auth)::before {
     font-style: italic;
 }
 
-/* Market Comparison Grid */
+
 .market-comparison-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -391,7 +391,7 @@ body:not(.auth)::before {
     color: #dc3545;
 }
 
-/* Forecasting */
+
 .forecast-controls {
     display: flex;
     align-items: center;
@@ -466,7 +466,7 @@ body:not(.auth)::before {
     font-weight: bold;
 }
 
-/* Weekly Patterns */
+
 .weekly-patterns-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -474,7 +474,7 @@ body:not(.auth)::before {
     margin-bottom: 1.5rem;
 }
 
-/* Chart Containers */
+
 .chart-container {
     margin-top: 1.5rem;
     padding: 1rem;
@@ -489,7 +489,7 @@ body:not(.auth)::before {
     text-align: center;
 }
 
-/* Enhanced Form Styles */
+
 .form-section {
     margin-bottom: 2rem;
     padding: 1.5rem;
@@ -538,7 +538,7 @@ body:not(.auth)::before {
     flex-wrap: wrap;
 }
 
-/* Date Preview */
+
 .date-preview {
     margin-top: 1rem;
     padding: 1rem;
@@ -553,7 +553,7 @@ body:not(.auth)::before {
     color: #2c5530;
 }
 
-/* Data Level Indicator */
+
 .data-level-indicator {
     margin-top: 1rem;
     padding: 0.75rem;
@@ -568,7 +568,7 @@ body:not(.auth)::before {
     color: #856404;
 }
 
-/* Form Help Text */
+
 .form-help-text {
     margin-bottom: 1rem;
     padding: 0.75rem;
@@ -580,7 +580,7 @@ body:not(.auth)::before {
     line-height: 1.4;
 }
 
-/* Data Type Info */
+
 .data-type-info {
     margin-bottom: 1rem;
     padding: 1rem;
@@ -639,7 +639,7 @@ body:not(.auth)::before {
     color: #495057;
 }
 
-/* Enhanced Data Table */
+
 .data-table-container {
     overflow-x: auto;
     overflow-y: auto;
@@ -680,7 +680,7 @@ body:not(.auth)::before {
     background: #f8f9fa;
 }
 
-/* Make clickable consumer result rows feel like buttons */
+
 .data-table tbody tr.clickable-row {
     cursor: pointer;
 }
@@ -689,7 +689,7 @@ body:not(.auth)::before {
     outline-offset: -2px;
 }
 
-/* Enhanced Stats Grid */
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -728,7 +728,7 @@ body:not(.auth)::before {
     font-size: 0.9rem;
 }
 
-/* Enhanced Charts Grid */
+
 .charts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -750,7 +750,7 @@ body:not(.auth)::before {
     text-align: center;
 }
 
-/* Responsive Design */
+
 @media (max-width: 768px) {
     .form-grid {
         grid-template-columns: 1fr;
@@ -781,7 +781,7 @@ body:not(.auth)::before {
     }
 }
 
-/* Loading States */
+
 .loading {
     opacity: 0.6;
     pointer-events: none;
@@ -806,7 +806,7 @@ body:not(.auth)::before {
     100% { transform: rotate(360deg); }
 }
 
-/* Success/Error Messages */
+
 .alert {
     padding: 1rem;
     margin-bottom: 1rem;
@@ -826,7 +826,7 @@ body:not(.auth)::before {
     border-color: #f5c6cb;
 }
 
-/* Enhanced Navigation */
+
 .navbar {
     background: linear-gradient(135deg, #4a7c59, #2c5530);
     padding: 1rem 0;
@@ -858,7 +858,7 @@ body:not(.auth)::before {
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* Main Content Enhancement */
+
 .main-content {
     min-height: calc(100vh - 80px);
     background: transparent;
@@ -871,7 +871,7 @@ body:not(.auth)::before {
     padding: 0 1rem;
 }
 
-/* Enhanced Button Styles */
+
 .btn-primary {
     padding: 0.75rem 1.5rem;
     background: #4a7c59;
@@ -907,7 +907,7 @@ body:not(.auth)::before {
     background: #c82333;
 }
 
-/* Navigation */
+
 .nav-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -936,7 +936,7 @@ body:not(.auth)::before {
     transition: 0.3s;
 }
 
-/* Dashboard Header */
+
 .dashboard-header,
 .analytics-header {
     text-align: center;
@@ -956,7 +956,7 @@ body:not(.auth)::before {
     color: #666;
 }
 
-/* Form Elements */
+
 .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -997,7 +997,7 @@ body:not(.auth)::before {
     font-size: 0.8rem;
 }
 
-/* Waste Preview */
+
 .waste-preview {
     background: #f8f9fa;
     padding: 1.5rem;
@@ -1028,7 +1028,7 @@ body:not(.auth)::before {
     font-size: 0.9rem;
 }
 
-/* Prediction Results */
+
 .prediction-results {
     background: white;
     padding: 2rem;
@@ -1056,7 +1056,7 @@ body:not(.auth)::before {
     border-left: 4px solid #4a7c59;
 }
 
-/* Insights */
+
 .insights-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1076,7 +1076,7 @@ body:not(.auth)::before {
     margin-bottom: 0.5rem;
 }
 
-/* Recent Data */
+
 .recent-data {
     background: white;
     padding: 2rem;
@@ -1093,7 +1093,7 @@ body:not(.auth)::before {
     padding-bottom: 0.5rem;
 }
 
-/* Prediction Section */
+
 .prediction-section {
     background: white;
     padding: 2rem;
@@ -1110,33 +1110,33 @@ body:not(.auth)::before {
     padding-bottom: 0.5rem;
 }
 
-/* Align inputs in prediction form even when labels wrap */
+
 .prediction-form .form-group label {
     display: block;
     line-height: 1.3;
-    min-height: calc(1.3rem * 2); /* reserve 2 lines for long labels */
+    min-height: calc(1.3rem * 2); 
 }
 
 @media (max-width: 768px) {
     .prediction-form .form-group label {
-        min-height: 0; /* single column: no extra space needed */
+        min-height: 0; 
     }
 }
 
-/* Align inputs in data entry form even when labels wrap */
+
 .data-form .form-group label {
     display: block;
     line-height: 1.3;
-    min-height: calc(1.3rem * 2); /* reserve 2 lines for long labels */
+    min-height: calc(1.3rem * 2); 
 }
 
 @media (max-width: 768px) {
     .data-form .form-group label {
-        min-height: 0; /* single column: no extra space needed */
+        min-height: 0; 
     }
 }
 
-/* Mobile Responsiveness */
+
 @media (max-width: 768px) {
     .nav-menu {
         position: fixed;
@@ -1267,8 +1267,7 @@ body:not(.auth)::before {
   background: #b02a37;
 }
 
-/* Compact buttons and multi-row inventory styles */
-/* Compact button utility for small action buttons */
+
 .btn-compact {
   padding: 0.35rem 0.6rem;
   min-width: auto;
@@ -1278,7 +1277,7 @@ body:not(.auth)::before {
   border-radius: 4px;
 }
 
-/* Make action buttons inside the retailer inventory table compact */
+
 #retailerInventoryTable .btn-secondary,
 #retailerInventoryTable .btn-danger {
   padding: 0.35rem 0.6rem;
@@ -1289,7 +1288,7 @@ body:not(.auth)::before {
   border-radius: 4px;
 }
 
-/* Inventory groups (date-collapsible) */
+
 #retailerInventoryTable .ri-group-header td {
   background: #f8f9fa;
   color: #2c5530;
@@ -1319,7 +1318,7 @@ body:not(.auth)::before {
   width: 2rem;
 }
 
-/* Multi-variety rows styling */
+
 .ri-rows {
   display: flex;
   flex-direction: column;
