@@ -1781,7 +1781,7 @@ def login():
         if os.path.isdir(image_dir):
             for name in sorted(os.listdir(image_dir)):
                 lower = name.lower()
-                if lower.endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif')):
+                if lower.endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif')) and 'analytics.png' not in lower:
                     carousel_images.append(name)
     except Exception:
         carousel_images = []
@@ -1860,7 +1860,7 @@ def register():
         if os.path.isdir(image_dir):
             for name in sorted(os.listdir(image_dir)):
                 lower = name.lower()
-                if lower.endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif')):
+                if lower.endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif')) and 'analytics.png' not in lower:
                     carousel_images.append(name)
     except Exception:
         carousel_images = []
