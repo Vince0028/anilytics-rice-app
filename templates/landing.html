@@ -345,17 +345,32 @@
         <div class="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl animate-blob"></div>
         <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
         
-        <!-- Dashboard Image with cool effects -->
-        <div class="relative group">
-          <div class="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
-          <div class="relative transform hover:scale-105 transition-all duration-500">
-            <img 
-              src="{{ url_for('static', filename='../image/Landing page img/Data-driven decisions made simple.png') }}" 
-              alt="Data-driven Analytics Dashboard"
-              class="w-full rounded-2xl shadow-2xl border border-slate-700/50"
-            />
-            <!-- Overlay gradient for depth -->
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent rounded-2xl pointer-events-none"></div>
+        <!-- Dashboard Images Grid -->
+        <div class="grid grid-cols-1 gap-6">
+          <!-- First Image -->
+          <div class="relative group">
+            <div class="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
+            <div class="relative transform hover:scale-105 transition-all duration-500">
+              <img 
+                src="{{ url_for('static', filename='../image/Landing page img/Data-driven decisions made simple.png') }}" 
+                alt="Data-driven Analytics Dashboard"
+                class="w-full rounded-2xl shadow-2xl border border-slate-700/50"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent rounded-2xl pointer-events-none"></div>
+            </div>
+          </div>
+          
+          <!-- Second Image -->
+          <div class="relative group">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
+            <div class="relative transform hover:scale-105 transition-all duration-500">
+              <img 
+                src="{{ url_for('static', filename='../image/Landing page img/Data-driven decisions made simple2.png') }}" 
+                alt="Advanced Analytics Features"
+                class="w-full rounded-2xl shadow-2xl border border-slate-700/50"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent rounded-2xl pointer-events-none"></div>
+            </div>
           </div>
         </div>
       </div>
