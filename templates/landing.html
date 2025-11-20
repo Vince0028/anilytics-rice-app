@@ -124,6 +124,103 @@
   </div>
 </div>
 
+<!-- Privacy Policy Modal -->
+<div id="privacyModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden relative">
+    <div class="sticky top-0 bg-white border-b border-slate-200 px-8 py-6 flex items-center justify-between">
+      <h2 class="text-2xl font-bold text-slate-900">Privacy Policy</h2>
+      <button onclick="closePrivacyModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="overflow-y-auto max-h-[calc(85vh-100px)] px-8 py-6">
+      <div class="prose prose-slate max-w-none">
+        <p class="text-sm text-slate-500 mb-6">Last updated: November 20, 2025</p>
+        
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">1. Information We Collect</h3>
+        <p class="text-slate-600 mb-4">AniLytics collects information you provide directly to us, including:</p>
+        <ul class="list-disc pl-6 text-slate-600 space-y-2 mb-4">
+          <li>Account registration information (name, email, business details)</li>
+          <li>Rice inventory and sales data you input into the platform</li>
+          <li>Usage data and analytics on how you interact with our services</li>
+        </ul>
+
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">2. How We Use Your Information</h3>
+        <p class="text-slate-600 mb-4">We use the information we collect to:</p>
+        <ul class="list-disc pl-6 text-slate-600 space-y-2 mb-4">
+          <li>Provide, maintain, and improve our analytics services</li>
+          <li>Generate insights and predictions for your rice business</li>
+          <li>Send you technical notices and support messages</li>
+          <li>Detect and prevent fraudulent or unauthorized activity</li>
+        </ul>
+
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">3. Data Security</h3>
+        <p class="text-slate-600 mb-4">We implement industry-standard security measures to protect your data, including encryption, secure servers, and regular security audits. Your business data is stored securely and is never shared with third parties without your consent.</p>
+
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">4. Your Rights</h3>
+        <p class="text-slate-600 mb-4">You have the right to access, update, or delete your personal information at any time. You can manage your data through your account settings or contact our support team.</p>
+
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">5. Contact Us</h3>
+        <p class="text-slate-600">If you have questions about this Privacy Policy, please contact us through the platform.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Terms of Service Modal -->
+<div id="termsModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden relative">
+    <div class="sticky top-0 bg-white border-b border-slate-200 px-8 py-6 flex items-center justify-between">
+      <h2 class="text-2xl font-bold text-slate-900">Terms of Service</h2>
+      <button onclick="closeTermsModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="overflow-y-auto max-h-[calc(85vh-100px)] px-8 py-6">
+      <div class="prose prose-slate max-w-none">
+        <p class="text-sm text-slate-500 mb-6">Last updated: November 20, 2025</p>
+        
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">1. Acceptance of Terms</h3>
+        <p class="text-slate-600 mb-4">By accessing and using AniLytics, you accept and agree to be bound by the terms and provisions of this agreement. If you do not agree to these terms, please do not use our services.</p>
+
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">2. Service Description</h3>
+        <p class="text-slate-600 mb-4">AniLytics provides rice analytics and inventory management tools for retailers and distributors. Our platform offers:</p>
+        <ul class="list-disc pl-6 text-slate-600 space-y-2 mb-4">
+          <li>Real-time inventory tracking and analytics</li>
+          <li>Sales velocity and demand forecasting</li>
+          <li>Competitor analysis and market insights</li>
+          <li>Waste reduction recommendations</li>
+        </ul>
+
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">3. User Responsibilities</h3>
+        <p class="text-slate-600 mb-4">You agree to:</p>
+        <ul class="list-disc pl-6 text-slate-600 space-y-2 mb-4">
+          <li>Provide accurate and complete information</li>
+          <li>Maintain the security of your account credentials</li>
+          <li>Use the service only for lawful business purposes</li>
+          <li>Not attempt to interfere with or disrupt the service</li>
+        </ul>
+
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">4. Subscription and Payments</h3>
+        <p class="text-slate-600 mb-4">Access to certain features may require a paid subscription. Subscription fees are billed in advance on a recurring basis. You may cancel your subscription at any time.</p>
+
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">5. Limitation of Liability</h3>
+        <p class="text-slate-600 mb-4">AniLytics provides analytics and recommendations as-is. We are not responsible for business decisions made based on our analytics or for any losses incurred.</p>
+
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">6. Changes to Terms</h3>
+        <p class="text-slate-600 mb-4">We reserve the right to modify these terms at any time. Continued use of the service after changes constitutes acceptance of the new terms.</p>
+
+        <h3 class="text-lg font-semibold text-slate-900 mt-6 mb-3">7. Contact</h3>
+        <p class="text-slate-600">For questions about these Terms of Service, please contact us through the platform.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <nav id="navbar" class="fixed w-full z-50 transition-all duration-300 bg-transparent py-5">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex justify-between items-center">
@@ -516,22 +613,16 @@
       <div>
         <h3 class="text-white font-semibold mb-4">Legal</h3>
         <ul class="space-y-2 text-sm">
-          <li><a href="#" class="hover:text-emerald-400 transition-colors">Privacy Policy</a></li>
-          <li><a href="#" class="hover:text-emerald-400 transition-colors">Terms of Service</a></li>
+          <li><a href="#" onclick="openPrivacyModal(); return false;" class="hover:text-emerald-400 transition-colors cursor-pointer">Privacy Policy</a></li>
+          <li><a href="#" onclick="openTermsModal(); return false;" class="hover:text-emerald-400 transition-colors cursor-pointer">Terms of Service</a></li>
         </ul>
       </div>
     </div>
     
-    <div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center">
+    <div class="border-t border-slate-800 pt-8 text-center">
       <p class="text-sm text-slate-500">
         &copy; 2025 AniLytics. All rights reserved.
       </p>
-      <div class="flex items-center mt-4 md:mt-0 text-sm text-slate-500">
-        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-        </svg>
-        <span>support@anilytics.local</span>
-      </div>
     </div>
   </div>
 </footer>
@@ -548,18 +639,46 @@
     document.body.style.overflow = 'auto';
   }
 
-  // Close modal on escape key
+  function openPrivacyModal() {
+    document.getElementById('privacyModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePrivacyModal() {
+    document.getElementById('privacyModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+  }
+
+  function openTermsModal() {
+    document.getElementById('termsModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeTermsModal() {
+    document.getElementById('termsModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+  }
+
+  // Close modals on escape key
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       closeTrialModal();
+      closePrivacyModal();
+      closeTermsModal();
     }
   });
 
-  // Close modal when clicking outside
+  // Close modals when clicking outside
   document.getElementById('trialModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-      closeTrialModal();
-    }
+    if (e.target === this) closeTrialModal();
+  });
+
+  document.getElementById('privacyModal').addEventListener('click', function(e) {
+    if (e.target === this) closePrivacyModal();
+  });
+
+  document.getElementById('termsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeTermsModal();
   });
 
   window.addEventListener('scroll', function() {
