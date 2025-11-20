@@ -84,8 +84,11 @@
 <nav id="navbar" class="fixed w-full z-50 transition-all duration-300 bg-transparent py-5">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex justify-between items-center">
-      <div class="flex items-center cursor-pointer" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">
-        <img src="{{ url_for('static', filename='../image/AnaLytics.png') }}" alt="AniLytics" class="h-10 w-auto">
+      <div class="flex items-center gap-3 cursor-pointer group" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">
+        <div class="bg-white p-2 rounded-xl shadow-lg group-hover:shadow-emerald-300/50 transition-all duration-300 group-hover:scale-105 border border-emerald-100">
+          <img src="{{ url_for('static', filename='../image/AnaLytics.png') }}" alt="AniLytics" class="h-8 w-auto">
+        </div>
+        <span class="text-xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent">AniLytics</span>
       </div>
 
       <div class="hidden md:flex items-center space-x-8">
@@ -444,8 +447,11 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
       <div class="col-span-1 md:col-span-1">
-        <div class="flex items-center mb-4">
-          <img src="{{ url_for('static', filename='../image/AnaLytics.png') }}" alt="AniLytics" class="h-8 w-auto">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="bg-white p-2 rounded-xl shadow-lg border border-slate-700">
+            <img src="{{ url_for('static', filename='../image/AnaLytics.png') }}" alt="AniLytics" class="h-6 w-auto">
+          </div>
+          <span class="text-lg font-bold text-white">AniLytics</span>
         </div>
         <p class="text-sm text-slate-400 mb-6">
           Empowering rice retailers with AI-driven insights to reduce waste and optimize sales.
