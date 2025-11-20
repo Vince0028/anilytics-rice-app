@@ -77,9 +77,52 @@
       .chart-bar {
         animation: fillUp 1s ease-out forwards;
       }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      .animate-spin {
+        animation: spin 1s linear infinite;
+      }
     </style>
 </head>
 <body class="overflow-x-hidden">
+
+<!-- Fake Trial Modal -->
+<div id="trialModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
+    <!-- Close Button -->
+    <button onclick="closeTrialModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+    
+    <!-- Loading Content -->
+    <div class="text-center">
+      <div class="mb-6">
+        <div class="w-16 h-16 mx-auto border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+      </div>
+      <h3 class="text-2xl font-bold text-slate-900 mb-2">Setting up your trial...</h3>
+      <p class="text-slate-600 mb-6">Please wait while we prepare your analytics dashboard</p>
+      <div class="space-y-2 text-sm text-slate-500">
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+          <span>Initializing your workspace</span>
+        </div>
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
+          <span>Configuring analytics modules</span>
+        </div>
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
+          <span>Setting up data pipelines</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <nav id="navbar" class="fixed w-full z-50 transition-all duration-300 bg-transparent py-5">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -150,12 +193,12 @@
           AniLytics empowers rice distributors and retailers with intelligent analytics to track inventory, analyze market trends, and predict sales demand.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-          <a href="{{ url_for('register') }}" class="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-full shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all duration-200">
+          <button onclick="openTrialModal()" class="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-full shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all duration-200">
             Start Free Trial
             <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
             </svg>
-          </a>
+          </button>
           <a href="{{ url_for('consumer_dashboard') }}" class="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-full transition-all duration-200">
             I'm a Consumer
           </a>
@@ -494,6 +537,31 @@
 </footer>
 
 <script>
+  // Modal functions
+  function openTrialModal() {
+    document.getElementById('trialModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeTrialModal() {
+    document.getElementById('trialModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+  }
+
+  // Close modal on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeTrialModal();
+    }
+  });
+
+  // Close modal when clicking outside
+  document.getElementById('trialModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeTrialModal();
+    }
+  });
+
   window.addEventListener('scroll', function() {
     const navbar = document.getElementById('navbar');
     if (window.scrollY > 20) {
