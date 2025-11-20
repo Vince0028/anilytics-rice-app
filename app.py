@@ -681,6 +681,13 @@ def serialize_entry(entry):
     return {k: to_serializable(v) for k, v in entry.items()}
 
 @app.route('/')
+def landing():
+    """Landing page for unauthenticated users"""
+    if session.get('sb_user'):
+        return redirect(url_for('dashboard'))
+    return render_template('landing.html')
+
+@app.route('/dashboard')
 @login_required
 def dashboard():
     """Main dashboard with statistics and charts"""
