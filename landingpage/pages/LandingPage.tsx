@@ -13,19 +13,75 @@ import {
 
 const LandingPage: React.FC = () => {
   
+  // Container animation with staggered children
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2
+        staggerChildren: 0.15,
+        delayChildren: 0.1
       }
     }
   };
 
+  // Item fade up animation
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { 
+        duration: 0.6,
+        ease: [0.25, 0.46, 0.45, 0.94]
+      } 
+    }
+  };
+
+  // Fade in from left
+  const fadeInLeft = {
+    hidden: { opacity: 0, x: -60 },
+    visible: { 
+      opacity: 1, 
+      x: 0,
+      transition: { duration: 0.7, ease: "easeOut" }
+    }
+  };
+
+  // Fade in from right
+  const fadeInRight = {
+    hidden: { opacity: 0, x: 60 },
+    visible: { 
+      opacity: 1, 
+      x: 0,
+      transition: { duration: 0.7, ease: "easeOut" }
+    }
+  };
+
+  // Scale up animation
+  const scaleUp = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { 
+      opacity: 1, 
+      scale: 1,
+      transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }
+    }
+  };
+
+  // Button hover animation
+  const buttonHover = {
+    scale: 1.05,
+    transition: { duration: 0.2 }
+  };
+
+  const buttonTap = {
+    scale: 0.98
+  };
+
+  // Card hover animation
+  const cardHover = {
+    y: -8,
+    transition: { duration: 0.3, ease: "easeOut" }
   };
 
   return (
@@ -39,73 +95,135 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div 
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
+              initial="hidden"
+              animate="visible"
+              variants={containerVariants}
               className="text-center lg:text-left"
             >
-              <div className="inline-flex items-center px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium mb-6">
+              <motion.div 
+                variants={itemVariants}
+                className="inline-flex items-center px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium mb-6"
+              >
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
                 New: AI-Powered Demand Prediction
-              </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 mb-6 leading-tight">
+              </motion.div>
+              <motion.h1 
+                variants={itemVariants}
+                className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 mb-6 leading-tight"
+              >
                 Maximize Profits. <br/>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
                   Minimize Waste.
                 </span>
-              </h1>
-              <p className="text-lg text-slate-600 mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+              </motion.h1>
+              <motion.p 
+                variants={itemVariants}
+                className="text-lg text-slate-600 mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0"
+              >
                 The comprehensive platform for rice retailers to track inventory, analyze market trends, and predict sales using advanced analytics.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <a 
+              </motion.p>
+              <motion.div 
+                variants={itemVariants}
+                className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+              >
+                <motion.a 
                   href="/register" 
                   className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-full shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all duration-200"
+                  whileHover={buttonHover}
+                  whileTap={buttonTap}
                 >
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
-                </a>
-                <a 
+                </motion.a>
+                <motion.a 
                   href="/consumer" 
                   className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-full transition-all duration-200"
+                  whileHover={buttonHover}
+                  whileTap={buttonTap}
                 >
                   I'm a Consumer
-                </a>
-              </div>
+                </motion.a>
+              </motion.div>
               
-              <div className="mt-10 flex items-center justify-center lg:justify-start space-x-8 text-slate-400 text-sm">
+              <motion.div 
+                variants={itemVariants}
+                className="mt-10 flex items-center justify-center lg:justify-start space-x-8 text-slate-400 text-sm"
+              >
                 <div className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-emerald-500" /> Secure Data</div>
                 <div className="flex items-center"><LineChart className="h-4 w-4 mr-2 text-emerald-500" /> Real-time Analytics</div>
                 <div className="flex items-center"><Brain className="h-4 w-4 mr-2 text-emerald-500" /> AI Models</div>
-              </div>
+              </motion.div>
             </motion.div>
 
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              initial={{ opacity: 0, scale: 0.85, rotateY: -15 }}
+              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+              transition={{ duration: 1, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="relative mx-auto w-full max-w-lg lg:max-w-none"
             >
-              <div className="relative rounded-2xl shadow-2xl bg-white border border-slate-100 overflow-hidden">
+              <motion.div 
+                className="relative rounded-2xl shadow-2xl bg-white border border-slate-100 overflow-hidden"
+                whileHover={{ y: -5, transition: { duration: 0.3 } }}
+              >
                 <div className="absolute top-0 w-full h-8 bg-slate-50 border-b border-slate-100 flex items-center px-4 space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                  <motion.div 
+                    className="w-3 h-3 rounded-full bg-red-400"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.8, duration: 0.3 }}
+                  />
+                  <motion.div 
+                    className="w-3 h-3 rounded-full bg-amber-400"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.9, duration: 0.3 }}
+                  />
+                  <motion.div 
+                    className="w-3 h-3 rounded-full bg-emerald-400"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 1.0, duration: 0.3 }}
+                  />
                 </div>
                 {/* Abstract Dashboard UI Representation */}
                 <div className="p-6 pt-12 grid grid-cols-2 gap-4">
-                  <div className="col-span-2 h-48 bg-slate-50 rounded-xl p-4 border border-slate-100 relative overflow-hidden">
+                  <motion.div 
+                    className="col-span-2 h-48 bg-slate-50 rounded-xl p-4 border border-slate-100 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6, duration: 0.5 }}
+                  >
                     <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-emerald-500/10 to-transparent"></div>
                     <svg className="w-full h-full text-emerald-500" viewBox="0 0 100 40" preserveAspectRatio="none">
-                      <path d="M0,40 L0,30 C10,25 20,35 30,20 C40,10 50,25 60,15 C70,5 80,20 90,10 L100,0 L100,40 Z" fill="currentColor" opacity="0.2" />
-                      <path d="M0,30 C10,25 20,35 30,20 C40,10 50,25 60,15 C70,5 80,20 90,10 L100,0" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                      <motion.path 
+                        d="M0,40 L0,30 C10,25 20,35 30,20 C40,10 50,25 60,15 C70,5 80,20 90,10 L100,0 L100,40 Z" 
+                        fill="currentColor" 
+                        opacity="0.2"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ delay: 0.8, duration: 1.5 }}
+                      />
+                      <motion.path 
+                        d="M0,30 C10,25 20,35 30,20 C40,10 50,25 60,15 C70,5 80,20 90,10 L100,0" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="0.5"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ delay: 0.8, duration: 1.5 }}
+                      />
                     </svg>
                     <div className="absolute top-4 left-4">
                       <div className="h-3 w-24 bg-slate-200 rounded mb-2"></div>
                       <div className="h-6 w-16 bg-slate-800 rounded"></div>
                     </div>
-                  </div>
-                  <div className="h-32 bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col justify-between">
+                  </motion.div>
+                  <motion.div 
+                    className="h-32 bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col justify-between"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.9, duration: 0.5 }}
+                  >
                     <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
                       <ShoppingCart className="h-4 w-4 text-blue-600" />
                     </div>
@@ -113,8 +231,13 @@ const LandingPage: React.FC = () => {
                       <div className="h-3 w-16 bg-slate-200 rounded mb-1"></div>
                       <div className="h-5 w-12 bg-slate-800 rounded"></div>
                     </div>
-                  </div>
-                  <div className="h-32 bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col justify-between">
+                  </motion.div>
+                  <motion.div 
+                    className="h-32 bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col justify-between"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.0, duration: 0.5 }}
+                  >
                      <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
                       <Leaf className="h-4 w-4 text-orange-600" />
                     </div>
@@ -122,9 +245,9 @@ const LandingPage: React.FC = () => {
                       <div className="h-3 w-16 bg-slate-200 rounded mb-1"></div>
                       <div className="h-5 w-12 bg-slate-800 rounded"></div>
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
-              </div>
+              </motion.div>
               {/* Decorative elements behind */}
               <div className="absolute -top-6 -right-6 w-24 h-24 bg-teal-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
               <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-emerald-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
@@ -136,47 +259,88 @@ const LandingPage: React.FC = () => {
       {/* Feature Section */}
       <section id="features" className="py-24 bg-white relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-base text-emerald-600 font-semibold tracking-wide uppercase">Features</h2>
-            <p className="mt-2 text-3xl font-bold text-slate-900 tracking-tight sm:text-4xl">
+          <motion.div 
+            className="text-center max-w-3xl mx-auto mb-16"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={containerVariants}
+          >
+            <motion.h2 
+              variants={itemVariants}
+              className="text-base text-emerald-600 font-semibold tracking-wide uppercase"
+            >
+              Features
+            </motion.h2>
+            <motion.p 
+              variants={itemVariants}
+              className="mt-2 text-3xl font-bold text-slate-900 tracking-tight sm:text-4xl"
+            >
               Everything you need to grow your rice business
-            </p>
-            <p className="mt-4 text-lg text-slate-500">
+            </motion.p>
+            <motion.p 
+              variants={itemVariants}
+              className="mt-4 text-lg text-slate-500"
+            >
               Our platform combines traditional inventory management with cutting-edge AI to give you the competitive edge.
-            </p>
-          </div>
+            </motion.p>
+          </motion.div>
 
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-3 gap-8"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "-50px" }}
           >
-            <motion.div variants={itemVariants} className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group">
-              <div className="bg-white w-12 h-12 rounded-lg flex items-center justify-center shadow-sm mb-6 group-hover:bg-emerald-500 transition-colors duration-300">
+            <motion.div 
+              variants={itemVariants} 
+              whileHover={cardHover}
+              className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group"
+            >
+              <motion.div 
+                className="bg-white w-12 h-12 rounded-lg flex items-center justify-center shadow-sm mb-6 group-hover:bg-emerald-500 transition-colors duration-300"
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.5 }}
+              >
                 <Brain className="h-6 w-6 text-emerald-600 group-hover:text-white" />
-              </div>
+              </motion.div>
               <h3 className="text-xl font-semibold text-slate-900 mb-3">AI Demand Prediction</h3>
               <p className="text-slate-600">
                 Forecast future sales based on historical data, population demographics, and purchasing power. Never overstock or run out again.
               </p>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group">
-              <div className="bg-white w-12 h-12 rounded-lg flex items-center justify-center shadow-sm mb-6 group-hover:bg-emerald-500 transition-colors duration-300">
+            <motion.div 
+              variants={itemVariants} 
+              whileHover={cardHover}
+              className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group"
+            >
+              <motion.div 
+                className="bg-white w-12 h-12 rounded-lg flex items-center justify-center shadow-sm mb-6 group-hover:bg-emerald-500 transition-colors duration-300"
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.5 }}
+              >
                 <TrendingUp className="h-6 w-6 text-emerald-600 group-hover:text-white" />
-              </div>
+              </motion.div>
               <h3 className="text-xl font-semibold text-slate-900 mb-3">Market Trends</h3>
               <p className="text-slate-600">
                 Visualize sales patterns, waste percentages, and revenue growth over daily, weekly, or monthly periods.
               </p>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group">
-              <div className="bg-white w-12 h-12 rounded-lg flex items-center justify-center shadow-sm mb-6 group-hover:bg-emerald-500 transition-colors duration-300">
+            <motion.div 
+              variants={itemVariants} 
+              whileHover={cardHover}
+              className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group"
+            >
+              <motion.div 
+                className="bg-white w-12 h-12 rounded-lg flex items-center justify-center shadow-sm mb-6 group-hover:bg-emerald-500 transition-colors duration-300"
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.5 }}
+              >
                 <Leaf className="h-6 w-6 text-emerald-600 group-hover:text-white" />
-              </div>
+              </motion.div>
               <h3 className="text-xl font-semibold text-slate-900 mb-3">Waste Reduction</h3>
               <p className="text-slate-600">
                 Smart algorithms calculate unsold stock and efficiency scores to help you minimize food waste and maximize sustainability.
@@ -190,62 +354,108 @@ const LandingPage: React.FC = () => {
       <section id="analytics" className="py-24 bg-slate-900 text-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={fadeInLeft}
+            >
+              <motion.h2 
+                variants={itemVariants}
+                className="text-3xl font-bold tracking-tight sm:text-4xl mb-6"
+              >
                 Data-driven decisions made simple
-              </h2>
-              <p className="text-lg text-slate-400 mb-8">
+              </motion.h2>
+              <motion.p 
+                variants={itemVariants}
+                className="text-lg text-slate-400 mb-8"
+              >
                 Stop guessing. Use hard data to determine your pricing strategy, stock levels, and marketing efforts. Our dashboard provides:
-              </p>
+              </motion.p>
               
-              <div className="space-y-6">
+              <motion.div 
+                className="space-y-6"
+                variants={containerVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+              >
                 {[
                   { title: 'Sales Velocity', desc: 'Track how fast different rice varieties move.' },
                   { title: 'Competitor Analysis', desc: 'Compare your performance against local market benchmarks.' },
                   { title: 'Revenue Forecasting', desc: 'Projected earnings based on current trends.' }
                 ].map((item, idx) => (
-                  <div key={idx} className="flex">
-                    <div className="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full border border-emerald-500 text-emerald-500 mt-1">
+                  <motion.div 
+                    key={idx} 
+                    className="flex"
+                    variants={itemVariants}
+                    whileHover={{ x: 10, transition: { duration: 0.2 } }}
+                  >
+                    <motion.div 
+                      className="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full border border-emerald-500 text-emerald-500 mt-1"
+                      whileHover={{ scale: 1.2, backgroundColor: "rgb(16 185 129)", color: "white" }}
+                    >
                       <span className="text-xs font-bold">✓</span>
-                    </div>
+                    </motion.div>
                     <div className="ml-4">
                       <h4 className="text-lg font-medium">{item.title}</h4>
                       <p className="text-slate-400">{item.desc}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
 
-              <div className="mt-10">
-                 <a 
+              <motion.div 
+                className="mt-10"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.5 }}
+              >
+                 <motion.a 
                   href="/register" 
                   className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center"
+                  whileHover={{ x: 5 }}
                 >
                   Explore Analytics Features <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
-              </div>
-            </div>
+                </motion.a>
+              </motion.div>
+            </motion.div>
 
-            <div className="relative">
+            <motion.div 
+              className="relative"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={fadeInRight}
+            >
               {/* Simulated Analytics Graphic */}
-              <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500">
+              <motion.div 
+                className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-2xl"
+                initial={{ rotate: 2 }}
+                whileHover={{ rotate: 0, scale: 1.02 }}
+                transition={{ duration: 0.5 }}
+              >
                 <div className="flex justify-between items-center mb-8">
                   <div>
                     <div className="h-4 w-32 bg-slate-600 rounded mb-2"></div>
                     <div className="h-3 w-24 bg-slate-700 rounded"></div>
                   </div>
-                  <div className="h-8 w-24 bg-emerald-600/20 text-emerald-400 rounded flex items-center justify-center text-sm font-mono">
+                  <motion.div 
+                    className="h-8 w-24 bg-emerald-600/20 text-emerald-400 rounded flex items-center justify-center text-sm font-mono"
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
                     +12.5%
-                  </div>
+                  </motion.div>
                 </div>
                 <div className="h-64 flex items-end space-x-4">
                   {[40, 65, 45, 80, 55, 90, 75].map((h, i) => (
-                    <div key={i} className="flex-1 bg-slate-700 rounded-t-md relative group overflow-hidden">
+                    <div key={i} className="flex-1 bg-slate-700 rounded-t-md relative group overflow-hidden" style={{ height: '100%' }}>
                        <motion.div 
                           initial={{ height: 0 }}
-                          whileInView={{ height: `${h}%` }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 1, delay: i * 0.1 }}
+                          animate={{ height: `${h}%` }}
+                          transition={{ duration: 0.8, delay: 0.5 + i * 0.1, ease: "easeOut" }}
                           className="absolute bottom-0 w-full bg-gradient-to-t from-emerald-600 to-emerald-400"
                        />
                     </div>
@@ -254,8 +464,8 @@ const LandingPage: React.FC = () => {
                 <div className="mt-4 flex justify-between text-xs text-slate-500 font-mono">
                    <span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span>
                 </div>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -263,62 +473,131 @@ const LandingPage: React.FC = () => {
       {/* Comparison / Consumer Section */}
       <section id="how-it-works" className="py-24 bg-emerald-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-slate-900 mb-12">Connecting Retailers and Consumers</h2>
+          <motion.h2 
+            className="text-3xl font-bold text-slate-900 mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            Connecting Retailers and Consumers
+          </motion.h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-emerald-100">
-              <div className="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            <motion.div 
+              variants={itemVariants}
+              whileHover={cardHover}
+              className="bg-white p-8 rounded-2xl shadow-sm border border-emerald-100"
+            >
+              <motion.div 
+                className="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6"
+                whileHover={{ scale: 1.1, rotate: 10 }}
+              >
                 <BarChart3 className="h-6 w-6 text-emerald-700" />
-              </div>
+              </motion.div>
               <h3 className="text-xl font-bold mb-4">For Retailers</h3>
               <ul className="text-left text-slate-600 space-y-3 mb-8">
-                <li>• Manage inventory stock efficiently</li>
-                <li>• Input daily sales data</li>
-                <li>• Receive waste reduction alerts</li>
-                <li>• View competitor price comparisons</li>
+                {['Manage inventory stock efficiently', 'Input daily sales data', 'Receive waste reduction alerts', 'View competitor price comparisons'].map((item, idx) => (
+                  <motion.li 
+                    key={idx}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                  >
+                    • {item}
+                  </motion.li>
+                ))}
               </ul>
-              <a href="/register?role=retailer" className="block w-full py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors">
+              <motion.a 
+                href="/register?role=retailer" 
+                className="block w-full py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
+                whileHover={buttonHover}
+                whileTap={buttonTap}
+              >
                 Register as Retailer
-              </a>
-            </div>
+              </motion.a>
+            </motion.div>
 
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-emerald-100">
-              <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <motion.div 
+              variants={itemVariants}
+              whileHover={cardHover}
+              className="bg-white p-8 rounded-2xl shadow-sm border border-emerald-100"
+            >
+              <motion.div 
+                className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6"
+                whileHover={{ scale: 1.1, rotate: -10 }}
+              >
                 <ShoppingCart className="h-6 w-6 text-blue-700" />
-              </div>
+              </motion.div>
               <h3 className="text-xl font-bold mb-4">For Consumers</h3>
               <ul className="text-left text-slate-600 space-y-3 mb-8">
-                <li>• Browse rice prices in your area</li>
-                <li>• Find retailers with stock availability</li>
-                <li>• Compare variety qualities</li>
-                <li>• Support local businesses</li>
+                {['Browse rice prices in your area', 'Find retailers with stock availability', 'Compare variety qualities', 'Support local businesses'].map((item, idx) => (
+                  <motion.li 
+                    key={idx}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                  >
+                    • {item}
+                  </motion.li>
+                ))}
               </ul>
-              <a href="/register?role=consumer" className="block w-full py-3 bg-white border border-emerald-600 text-emerald-700 rounded-lg font-medium hover:bg-emerald-50 transition-colors">
+              <motion.a 
+                href="/register?role=consumer" 
+                className="block w-full py-3 bg-white border border-emerald-600 text-emerald-700 rounded-lg font-medium hover:bg-emerald-50 transition-colors"
+                whileHover={buttonHover}
+                whileTap={buttonTap}
+              >
                 Register as Consumer
-              </a>
-            </div>
-          </div>
+              </motion.a>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* Final CTA */}
       <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
+        <motion.div 
+          className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={containerVariants}
+        >
+          <motion.h2 
+            variants={itemVariants}
+            className="text-3xl md:text-4xl font-bold text-slate-900 mb-6"
+          >
             Ready to optimize your rice business?
-          </h2>
-          <p className="text-lg text-slate-600 mb-10">
+          </motion.h2>
+          <motion.p 
+            variants={itemVariants}
+            className="text-lg text-slate-600 mb-10"
+          >
             Join hundreds of retailers who are reducing waste and increasing profits with RiceVision.
-          </p>
-          <div className="flex justify-center gap-4">
-            <a 
+          </motion.p>
+          <motion.div 
+            variants={itemVariants}
+            className="flex justify-center gap-4"
+          >
+            <motion.a 
               href="/register" 
               className="px-8 py-4 text-lg font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-lg transition-all"
+              whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}
+              whileTap={{ scale: 0.98 }}
             >
               Get Started Now
-            </a>
-          </div>
-        </div>
+            </motion.a>
+          </motion.div>
+        </motion.div>
       </section>
     </div>
   );

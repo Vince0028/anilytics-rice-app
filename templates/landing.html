@@ -54,21 +54,172 @@
         animation-delay: 2s;
       }
       
+      /* Page Load Animations */
       @keyframes fadeInUp {
         from {
           opacity: 0;
-          transform: translateY(30px);
+          transform: translateY(40px);
         }
         to {
           opacity: 1;
           transform: translateY(0);
         }
       }
-      
-      .fade-in-up {
-        animation: fadeInUp 0.6s ease-out;
+
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeInLeft {
+        from {
+          opacity: 0;
+          transform: translateX(-50px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes fadeInRight {
+        from {
+          opacity: 0;
+          transform: translateX(50px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes scaleIn {
+        from {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      @keyframes slideInUp {
+        from {
+          opacity: 0;
+          transform: translateY(60px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
       }
       
+      /* Animation Classes */
+      .animate-fade-in-up {
+        animation: fadeInUp 0.8s ease-out forwards;
+      }
+
+      .animate-fade-in-down {
+        animation: fadeInDown 0.6s ease-out forwards;
+      }
+
+      .animate-fade-in-left {
+        animation: fadeInLeft 0.8s ease-out forwards;
+      }
+
+      .animate-fade-in-right {
+        animation: fadeInRight 0.8s ease-out forwards;
+      }
+
+      .animate-scale-in {
+        animation: scaleIn 0.6s ease-out forwards;
+      }
+
+      .animate-slide-in-up {
+        animation: slideInUp 0.9s ease-out forwards;
+      }
+
+      /* Delay classes */
+      .delay-100 { animation-delay: 0.1s; }
+      .delay-200 { animation-delay: 0.2s; }
+      .delay-300 { animation-delay: 0.3s; }
+      .delay-400 { animation-delay: 0.4s; }
+      .delay-500 { animation-delay: 0.5s; }
+      .delay-600 { animation-delay: 0.6s; }
+      .delay-700 { animation-delay: 0.7s; }
+      .delay-800 { animation-delay: 0.8s; }
+
+      /* Initially hidden for animation */
+      .animate-on-load {
+        opacity: 0;
+      }
+
+      /* Scroll Animation Classes */
+      .scroll-animate {
+        opacity: 0;
+        transform: translateY(40px);
+        transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .scroll-animate.animate-left {
+        transform: translateX(-50px);
+      }
+
+      .scroll-animate.animate-right {
+        transform: translateX(50px);
+      }
+
+      .scroll-animate.animate-scale {
+        transform: scale(0.9);
+      }
+
+      .scroll-animate.visible {
+        opacity: 1;
+        transform: translateY(0) translateX(0) scale(1);
+      }
+
+      /* Button Animations */
+      .btn-animate {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .btn-animate:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
+      }
+
+      .btn-animate:active {
+        transform: translateY(0) scale(0.98);
+      }
+
+      /* Card Hover Animations */
+      .card-animate {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .card-animate:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Icon Spin on Hover */
+      .icon-spin-hover:hover svg {
+        animation: iconSpin 0.6s ease-in-out;
+      }
+
+      @keyframes iconSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Chart Bar Animation */
       @keyframes fillUp {
         from { height: 0; }
         to { height: var(--target-height); }
@@ -78,12 +229,60 @@
         animation: fillUp 1s ease-out forwards;
       }
       
+      /* Floating Animation */
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+
+      .animate-float {
+        animation: float 3s ease-in-out infinite;
+      }
+
+      /* Navbar Animation */
+      .navbar-animate {
+        animation: fadeInDown 0.6s ease-out forwards;
+      }
+
+      /* Stagger children animation */
+      .stagger-children > * {
+        opacity: 0;
+        animation: fadeInUp 0.6s ease-out forwards;
+      }
+
+      .stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
+      .stagger-children > *:nth-child(2) { animation-delay: 0.2s; }
+      .stagger-children > *:nth-child(3) { animation-delay: 0.3s; }
+      .stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
+      .stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
+
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
       
       .animate-spin {
         animation: spin 1s linear infinite;
+      }
+
+      /* Link hover effect */
+      .link-hover {
+        position: relative;
+        transition: color 0.3s ease;
+      }
+
+      .link-hover::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: #10b981;
+        transition: width 0.3s ease;
+      }
+
+      .link-hover:hover::after {
+        width: 100%;
       }
     </style>
 </head>
@@ -221,7 +420,7 @@
   </div>
 </div>
 
-<nav id="navbar" class="fixed w-full z-50 transition-all duration-300 bg-transparent py-5">
+<nav id="navbar" class="fixed w-full z-50 transition-all duration-300 bg-transparent py-5 navbar-animate">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex justify-between items-center">
       <div class="flex items-center gap-3 cursor-pointer group" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">
@@ -232,13 +431,13 @@
       </div>
 
       <div class="hidden md:flex items-center space-x-8">
-        <a href="#features" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">Features</a>
-        <a href="#analytics" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">Analytics</a>
-        <a href="#how-it-works" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">How it Works</a>
+        <a href="#features" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors link-hover">Features</a>
+        <a href="#analytics" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors link-hover">Analytics</a>
+        <a href="#how-it-works" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors link-hover">How it Works</a>
         
         <div class="flex items-center space-x-4 ml-4">
-          <a href="{{ url_for('login') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">Log in</a>
-          <a href="{{ url_for('register') }}" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-full transition-all shadow-lg shadow-emerald-200">Get Started</a>
+          <a href="{{ url_for('login') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors link-hover">Log in</a>
+          <a href="{{ url_for('register') }}" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-full transition-all shadow-lg shadow-emerald-200 btn-animate">Get Started</a>
         </div>
       </div>
 
@@ -275,33 +474,33 @@
 
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-      <div class="text-center lg:text-left fade-in-up">
-        <div class="inline-flex items-center px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium mb-6">
+      <div class="text-center lg:text-left animate-on-load animate-fade-in-left">
+        <div class="inline-flex items-center px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium mb-6 animate-on-load animate-fade-in-up delay-100">
           <span class="flex h-2 w-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
           New: AI-Powered Rice Analytics
         </div>
-        <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 mb-6 leading-tight">
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 mb-6 leading-tight animate-on-load animate-fade-in-up delay-200">
           Optimize Sales. <br/>
           <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
             Reduce Waste.
           </span>
         </h1>
-        <p class="text-lg text-slate-600 mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+        <p class="text-lg text-slate-600 mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0 animate-on-load animate-fade-in-up delay-300">
           AniLytics empowers rice distributors and retailers with intelligent analytics to track inventory, analyze market trends, and predict sales demand.
         </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-          <button onclick="openTrialModal()" class="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-full shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all duration-200">
+        <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-on-load animate-fade-in-up delay-400">
+          <button onclick="openTrialModal()" class="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-full shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all duration-200 btn-animate">
             Start Free Trial
             <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
             </svg>
           </button>
-          <a href="{{ url_for('consumer_dashboard') }}" class="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-full transition-all duration-200">
+          <a href="{{ url_for('consumer_dashboard') }}" class="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-full transition-all duration-200 btn-animate">
             I'm a Consumer
           </a>
         </div>
         
-        <div class="mt-10 flex items-center justify-center lg:justify-start space-x-8 text-slate-400 text-sm">
+        <div class="mt-10 flex items-center justify-center lg:justify-start space-x-8 text-slate-400 text-sm animate-on-load animate-fade-in-up delay-500">
           <div class="flex items-center">
             <svg class="h-4 w-4 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
@@ -323,8 +522,8 @@
         </div>
       </div>
 
-      <div class="relative mx-auto w-full max-w-lg lg:max-w-none fade-in-up">
-        <div class="relative rounded-2xl shadow-2xl bg-white border border-slate-100 overflow-hidden group">
+      <div class="relative mx-auto w-full max-w-lg lg:max-w-none animate-on-load animate-slide-in-up delay-300">
+        <div class="relative rounded-2xl shadow-2xl bg-white border border-slate-100 overflow-hidden group animate-float">
           <div class="absolute top-0 w-full h-8 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 flex items-center px-4 space-x-2">
             <div class="w-3 h-3 rounded-full bg-red-400 hover:bg-red-500 transition-colors cursor-pointer"></div>
             <div class="w-3 h-3 rounded-full bg-amber-400 hover:bg-amber-500 transition-colors cursor-pointer"></div>
@@ -440,7 +639,7 @@
 
 <section id="features" class="py-24 bg-white relative">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center max-w-3xl mx-auto mb-16">
+    <div class="text-center max-w-3xl mx-auto mb-16 scroll-animate">
       <h2 class="text-base text-emerald-600 font-semibold tracking-wide uppercase">Features</h2>
       <p class="mt-2 text-3xl font-bold text-slate-900 tracking-tight sm:text-4xl">
         Everything you need to grow your rice business
@@ -451,9 +650,9 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-      <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group">
+      <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group scroll-animate card-animate icon-spin-hover">
         <div class="bg-white w-12 h-12 rounded-lg flex items-center justify-center shadow-sm mb-6 group-hover:bg-emerald-500 transition-colors duration-300">
-          <svg class="h-6 w-6 text-emerald-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-6 w-6 text-emerald-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
           </svg>
         </div>
@@ -463,9 +662,9 @@
         </p>
       </div>
 
-      <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group">
+      <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group scroll-animate card-animate icon-spin-hover" style="transition-delay: 0.1s;">
         <div class="bg-white w-12 h-12 rounded-lg flex items-center justify-center shadow-sm mb-6 group-hover:bg-emerald-500 transition-colors duration-300">
-          <svg class="h-6 w-6 text-emerald-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-6 w-6 text-emerald-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
           </svg>
         </div>
@@ -475,9 +674,9 @@
         </p>
       </div>
 
-      <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group">
+      <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg transition-shadow duration-300 group scroll-animate card-animate icon-spin-hover" style="transition-delay: 0.2s;">
         <div class="bg-white w-12 h-12 rounded-lg flex items-center justify-center shadow-sm mb-6 group-hover:bg-emerald-500 transition-colors duration-300">
-          <svg class="h-6 w-6 text-emerald-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-6 w-6 text-emerald-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
           </svg>
         </div>
@@ -493,7 +692,7 @@
 <section id="analytics" class="py-24 bg-slate-900 text-white overflow-hidden">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-16 items-center">
-      <div class="lg:col-span-2">
+      <div class="lg:col-span-2 scroll-animate animate-left">
         <h2 class="text-3xl font-bold tracking-tight sm:text-4xl mb-6">
           Data-driven decisions made simple
         </h2>
@@ -501,49 +700,49 @@
           Stop guessing. Use hard data to determine your rice pricing strategy, stock levels, and marketing efforts. Our dashboard provides:
         </p>
         
-        <div class="space-y-6">
-          <div class="flex">
-            <div class="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full border border-emerald-500 text-emerald-500 mt-1">
+        <div class="space-y-6 stagger-children">
+          <div class="flex group cursor-pointer">
+            <div class="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full border border-emerald-500 text-emerald-500 mt-1 group-hover:bg-emerald-500 group-hover:text-white transition-all">
               <span class="text-xs font-bold">✓</span>
             </div>
             <div class="ml-4">
-              <h4 class="text-lg font-medium">Rice Sales Velocity</h4>
+              <h4 class="text-lg font-medium group-hover:text-emerald-400 transition-colors">Rice Sales Velocity</h4>
               <p class="text-slate-400">Track how fast different rice varieties move in your inventory.</p>
             </div>
           </div>
           
-          <div class="flex">
-            <div class="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full border border-emerald-500 text-emerald-500 mt-1">
+          <div class="flex group cursor-pointer">
+            <div class="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full border border-emerald-500 text-emerald-500 mt-1 group-hover:bg-emerald-500 group-hover:text-white transition-all">
               <span class="text-xs font-bold">✓</span>
             </div>
             <div class="ml-4">
-              <h4 class="text-lg font-medium">Competitor Analysis</h4>
+              <h4 class="text-lg font-medium group-hover:text-emerald-400 transition-colors">Competitor Analysis</h4>
               <p class="text-slate-400">Compare your rice prices and performance against local market benchmarks.</p>
             </div>
           </div>
           
-          <div class="flex">
-            <div class="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full border border-emerald-500 text-emerald-500 mt-1">
+          <div class="flex group cursor-pointer">
+            <div class="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full border border-emerald-500 text-emerald-500 mt-1 group-hover:bg-emerald-500 group-hover:text-white transition-all">
               <span class="text-xs font-bold">✓</span>
             </div>
             <div class="ml-4">
-              <h4 class="text-lg font-medium">Revenue Forecasting</h4>
+              <h4 class="text-lg font-medium group-hover:text-emerald-400 transition-colors">Revenue Forecasting</h4>
               <p class="text-slate-400">Projected rice earnings based on current trends and seasonal patterns.</p>
             </div>
           </div>
         </div>
 
         <div class="mt-10">
-          <a href="{{ url_for('register') }}" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center">
+          <a href="{{ url_for('register') }}" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center group">
             Explore Analytics Features
-            <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
             </svg>
           </a>
         </div>
       </div>
 
-      <div class="relative lg:col-span-3">
+      <div class="relative lg:col-span-3 scroll-animate animate-right">
         <!-- Floating accent blobs -->
         <div class="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl animate-blob"></div>
         <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
@@ -583,11 +782,11 @@
 
 <section id="how-it-works" class="py-24 bg-emerald-50">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-    <h2 class="text-3xl font-bold text-slate-900 mb-12">Connecting Retailers and Consumers</h2>
+    <h2 class="text-3xl font-bold text-slate-900 mb-12 scroll-animate">Connecting Retailers and Consumers</h2>
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-      <div class="bg-white p-8 rounded-2xl shadow-sm border border-emerald-100">
-        <div class="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <div class="bg-white p-8 rounded-2xl shadow-sm border border-emerald-100 scroll-animate card-animate">
+        <div class="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
           <svg class="h-6 w-6 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
           </svg>
@@ -599,12 +798,12 @@
           <li>• Receive waste reduction alerts</li>
           <li>• View competitor price comparisons</li>
         </ul>
-        <a href="{{ url_for('register') }}" class="block w-full py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors">
+        <a href="{{ url_for('register') }}" class="block w-full py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors btn-animate">
           Register as Retailer
         </a>
       </div>
 
-      <div class="bg-white p-8 rounded-2xl shadow-sm border border-emerald-100">
+      <div class="bg-white p-8 rounded-2xl shadow-sm border border-emerald-100 scroll-animate card-animate" style="transition-delay: 0.15s;">
         <div class="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <svg class="h-6 w-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -617,7 +816,7 @@
           <li>• Compare variety qualities</li>
           <li>• Support local businesses</li>
         </ul>
-        <a href="{{ url_for('consumer_dashboard') }}" class="block w-full py-3 bg-white border border-emerald-600 text-emerald-700 rounded-lg font-medium hover:bg-emerald-50 transition-colors">
+        <a href="{{ url_for('consumer_dashboard') }}" class="block w-full py-3 bg-white border border-emerald-600 text-emerald-700 rounded-lg font-medium hover:bg-emerald-50 transition-colors btn-animate">
           Register as Consumer
         </a>
       </div>
@@ -626,7 +825,7 @@
 </section>
 
 <section class="py-20 bg-white">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center scroll-animate animate-scale">
     <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
       Ready to optimize your rice business?
     </h2>
@@ -634,7 +833,7 @@
       Join rice distributors and retailers using AniLytics to reduce waste and increase profits.
     </p>
     <div class="flex justify-center gap-4">
-      <a href="{{ url_for('register') }}" class="px-8 py-4 text-lg font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-lg transition-all">
+      <a href="{{ url_for('register') }}" class="px-8 py-4 text-lg font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-lg transition-all btn-animate">
         Get Started Now
       </a>
     </div>
@@ -643,7 +842,7 @@
 
 <footer class="bg-slate-900 text-slate-300 py-12 border-t border-slate-800">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 scroll-animate">
       <div class="col-span-1 md:col-span-1">
         <div class="flex items-center gap-3 mb-4">
           <div class="bg-white p-2 rounded-xl shadow-lg border border-slate-700">
@@ -682,7 +881,7 @@
       </div>
     </div>
     
-    <div class="border-t border-slate-800 pt-8 text-center">
+    <div class="border-t border-slate-800 pt-8 text-center scroll-animate">
       <p class="text-sm text-slate-500">
         &copy; 2025 AniLytics. All rights reserved.
       </p>
@@ -783,6 +982,35 @@
           behavior: 'smooth',
           block: 'start'
         });
+      }
+    });
+  });
+
+  // Scroll Animation Observer
+  const scrollObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        // Optionally unobserve after animation triggers
+        // scrollObserver.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  });
+
+  // Observe all elements with scroll-animate class
+  document.querySelectorAll('.scroll-animate').forEach(el => {
+    scrollObserver.observe(el);
+  });
+
+  // Add visible class to elements already in viewport on load
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.scroll-animate').forEach(el => {
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        el.classList.add('visible');
       }
     });
   });
