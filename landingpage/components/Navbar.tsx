@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Sprout } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
+
+// Main Flask app URL on Render
+const FLASK_APP_URL = 'https://anilytics-rice-app.onrender.com';
 
 const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -62,7 +64,7 @@ const Navbar: React.FC = () => {
         <div className="flex justify-between items-center">
           {/* Logo */}
           <motion.div 
-            className="flex items-center cursor-pointer" 
+            className="flex items-center gap-3 cursor-pointer group" 
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -70,14 +72,17 @@ const Navbar: React.FC = () => {
             whileHover={{ scale: 1.05 }}
           >
             <motion.div 
-              className="bg-emerald-500 p-1.5 rounded-lg mr-2"
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
+              className="bg-white p-2 rounded-xl shadow-lg group-hover:shadow-emerald-300/50 transition-all duration-300 border border-emerald-100"
+              whileHover={{ scale: 1.05 }}
             >
-              <Sprout className="h-6 w-6 text-white" />
+              <img 
+                src={`${FLASK_APP_URL}/static/../image/AnaLytics.png`}
+                alt="AniLytics" 
+                className="h-8 w-auto"
+              />
             </motion.div>
-            <span className={`text-xl font-bold tracking-tight ${isScrolled ? 'text-slate-900' : 'text-slate-900'}`}>
-              RiceVision
+            <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent">
+              AniLytics
             </span>
           </motion.div>
 
@@ -87,7 +92,7 @@ const Navbar: React.FC = () => {
               <motion.a 
                 key={item}
                 href={`#${item.toLowerCase().replace(' ', '-')}`} 
-                className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors"
+                className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors relative group"
                 custom={i}
                 initial="hidden"
                 animate="visible"
@@ -95,6 +100,7 @@ const Navbar: React.FC = () => {
                 whileHover={{ y: -2 }}
               >
                 {item}
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-500 transition-all duration-300 group-hover:w-full"></span>
               </motion.a>
             ))}
             
@@ -105,14 +111,15 @@ const Navbar: React.FC = () => {
               transition={{ delay: 0.4, duration: 0.4 }}
             >
               <motion.a 
-                href="/login" 
-                className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors"
+                href={`${FLASK_APP_URL}/login`} 
+                className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors relative group"
                 whileHover={{ scale: 1.05 }}
               >
                 Log in
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-500 transition-all duration-300 group-hover:w-full"></span>
               </motion.a>
               <motion.a 
-                href="/register" 
+                href={`${FLASK_APP_URL}/register`} 
                 className="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-full transition-all shadow-lg shadow-emerald-200"
                 whileHover={{ scale: 1.05, boxShadow: "0 10px 30px rgba(16, 185, 129, 0.4)" }}
                 whileTap={{ scale: 0.98 }}
@@ -194,7 +201,7 @@ const Navbar: React.FC = () => {
                 transition={{ delay: 0.2 }}
               >
                 <motion.a 
-                  href="/login" 
+                  href={`${FLASK_APP_URL}/login`} 
                   className="block px-3 py-3 text-base font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-md"
                   custom={3}
                   variants={mobileItemVariants}
@@ -204,7 +211,7 @@ const Navbar: React.FC = () => {
                   Log in
                 </motion.a>
                 <motion.a 
-                  href="/register" 
+                  href={`${FLASK_APP_URL}/register`} 
                   className="block px-3 py-3 text-base font-medium text-emerald-600 hover:bg-emerald-50 rounded-md"
                   custom={4}
                   variants={mobileItemVariants}
