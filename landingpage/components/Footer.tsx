@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
-// Main Flask app URL on Render
+
 const FLASK_APP_URL = 'https://anilytics-rice-app.onrender.com';
 
 const Footer: React.FC = () => {
