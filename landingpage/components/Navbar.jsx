@@ -5,7 +5,7 @@ import { Menu, X } from 'lucide-react';
 // Main Flask app URL on Render
 const FLASK_APP_URL = 'https://anilytics-rice-app.onrender.com';
 
-const Navbar: React.FC = () => {
+const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -23,7 +23,7 @@ const Navbar: React.FC = () => {
 
   const navItemVariants = {
     hidden: { opacity: 0, y: -10 },
-    visible: (i: number) => ({
+    visible: (i) => ({
       opacity: 1,
       y: 0,
       transition: { delay: i * 0.1, duration: 0.4 }
@@ -46,7 +46,7 @@ const Navbar: React.FC = () => {
 
   const mobileItemVariants = {
     hidden: { opacity: 0, x: -20 },
-    visible: (i: number) => ({
+    visible: (i) => ({
       opacity: 1,
       x: 0,
       transition: { delay: i * 0.05, duration: 0.3 }

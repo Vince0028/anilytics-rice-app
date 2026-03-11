@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 
 const FLASK_APP_URL = 'https://anilytics-rice-app.onrender.com';
 
-const Footer: React.FC = () => {
+const Footer = () => {
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 

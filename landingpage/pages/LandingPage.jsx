@@ -18,14 +18,14 @@ import {
 // Main Flask app URL on Render
 const FLASK_APP_URL = 'https://anilytics-rice-app.onrender.com';
 
-const LandingPage: React.FC = () => {
+const LandingPage = () => {
   const [isTrialModalOpen, setIsTrialModalOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
   // Close modals on escape key
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
+    const handleEscape = (e) => {
       if (e.key === 'Escape') {
         setIsTrialModalOpen(false);
         setIsPrivacyModalOpen(false);
