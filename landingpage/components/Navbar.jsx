@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 
-// Main Flask app URL on Render
+
 const FLASK_APP_URL = 'https://anilytics-rice-app.onrender.com';
 
 const Navbar = () => {
