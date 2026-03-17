@@ -382,7 +382,7 @@
                 const queryString = params.toString();
                 const baseUrl = queryString ? `?${queryString}` : '';
 
-                // Use safe JSON fetches with timeouts so one slow API won't block others
+                
                 const [quality, trends, correlations, marketComparison, analyticsSummary, rawSales] = await Promise.all([
                     getJson(`/api/data-quality${baseUrl}`, 15000),
                     getJson(`/api/trends${baseUrl}`, 15000),
