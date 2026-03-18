@@ -377,7 +377,7 @@
                 if (year) params.append('year', year);
                 if (month) params.append('month', month);
                 if (week) params.append('week', week);
-                // Do not force strict filtering; allow backend fallbacks to include broader aggregates
+                
                 
                 const queryString = params.toString();
                 const baseUrl = queryString ? `?${queryString}` : '';
