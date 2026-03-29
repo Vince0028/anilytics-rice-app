@@ -411,7 +411,7 @@
                 updateTrendAnalysis(trends);
                 updateCorrelationAnalysis(correlations);
                 updateMarketComparison(marketComparison);
-                // Expose for fallback logic and other scripts
+                
                 window.analyticsSummary = (analyticsSummary && !analyticsSummary.error) ? analyticsSummary : null;
                 window.trends = (trends && !trends.error) ? trends : null;
                 window.marketComparison = (marketComparison && !marketComparison.error) ? marketComparison : null;
