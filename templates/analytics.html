@@ -417,7 +417,7 @@
                 window.marketComparison = (marketComparison && !marketComparison.error) ? marketComparison : null;
                 createAdvancedCharts(trends, correlations, marketComparison, analyticsSummary, rawSales);
                 if (analyticsSummary && !analyticsSummary.error) {
-                    // Populate insights using analytics summary and trends (local heuristic, no external API)
+                
                     const data = analyticsSummary;
                     const t = trends || {};
                     const insightsGrid = document.getElementById('insightsGrid');
