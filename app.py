@@ -327,7 +327,7 @@ def calculate_trend_analysis(data):
     # Compute partial results even with limited data; default trends to 0 and arrays may be empty
     data = data or []
     
-    # Helper: parse flexible date based on stored fields
+    # Helper: flexible date based on stored fields
     def parse_entry_datetime(entry):
         try:
             year = entry.get('year')
