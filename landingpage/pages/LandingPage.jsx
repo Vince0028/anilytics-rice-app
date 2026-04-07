@@ -15,7 +15,7 @@ import {
   Check
 } from 'lucide-react';
 
-// Main Flask app URL on Render
+// Main Flask app URL on Rend
 const FLASK_APP_URL = 'https://anilytics-rice-app.onrender.com';
 
 const LandingPage = () => {
